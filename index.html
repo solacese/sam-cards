@@ -4,11 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#ffffff">
-  <meta name="description" content="Explore event-driven AI agent patterns for financial services, manufacturing, retail, energy, logistics and life sciences.">
-  <meta property="og:title" content="Solace Agent Mesh — From Signal to Action">
-  <meta property="og:description" content="See how event-driven AI agents can sense, decide and act across your enterprise — with people in control.">
-  <meta property="og:type" content="website">
-  <title>Solace Agent Mesh — From Signal to Action</title>
+  <meta name="description" content="Solace Agent Mesh sales cheat sheet with three agent patterns for six industries.">
+  <title>Solace Agent Mesh Sales Cards</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -17,197 +14,44 @@
   <script src="app.js" defer></script>
 </head>
 <body>
-  <a class="skip-link" href="#patterns">Skip to use cases</a>
-
-  <header class="site-header" id="site-header">
-    <a class="brand" href="#top" aria-label="Solace Agent Mesh home">
+  <header class="site-header">
+    <button class="brand" id="home-button" type="button" aria-label="Show all industries">
       <img src="assets/solace-logo.svg" alt="Solace" width="86" height="22">
       <span>Agent Mesh</span>
-    </a>
-    <nav aria-label="Primary navigation">
-      <a href="#how">How it works</a>
-      <a href="#patterns">Use cases</a>
-      <a class="nav-cta" href="#pilot">Build your pilot <span aria-hidden="true">↗</span></a>
-    </nav>
+    </button>
+    <p>Sales cheat sheet</p>
+    <button class="back-button" id="back-button" type="button" hidden>
+      <span aria-hidden="true">←</span> Industries
+    </button>
   </header>
 
-  <main id="top">
-    <section class="hero" aria-labelledby="hero-title">
-      <div class="hero-copy">
-        <p class="eyebrow"><span></span> Event-driven agentic AI</p>
-        <h1 id="hero-title">Your business already sends the signal. <em>Now it can act.</em></h1>
-        <p class="hero-subtitle">Solace Agent Mesh connects AI agents to the events, systems and people that move your business — so the right action happens in real time, with human judgment where it matters.</p>
-        <div class="hero-actions">
-          <a class="button button-primary" href="#patterns">Explore the patterns <span aria-hidden="true">→</span></a>
-          <a class="text-link" href="#how">See how the mesh works <span aria-hidden="true">↓</span></a>
-        </div>
-        <div class="hero-proof" aria-label="Key capabilities">
-          <span>Real-time signals</span>
-          <span>Cross-system action</span>
-          <span>Human control</span>
-        </div>
+  <main>
+    <section class="screen active" id="industry-screen" aria-labelledby="industry-title">
+      <div class="screen-heading">
+        <p class="eyebrow">Solace Agent Mesh</p>
+        <h1 id="industry-title">Choose an industry</h1>
       </div>
-
-      <div class="mesh-visual" aria-label="A business event flows through a governed agent mesh to an approved action" role="img">
-        <div class="mesh-orbit orbit-one"></div>
-        <div class="mesh-orbit orbit-two"></div>
-        <div class="mesh-node node-event">
-          <span class="node-icon">01</span>
-          <strong>Signal</strong>
-          <small>Business event</small>
-        </div>
-        <div class="mesh-node node-agent">
-          <span class="pulse"></span>
-          <strong>Agent Mesh</strong>
-          <small>Reason + coordinate</small>
-        </div>
-        <div class="mesh-node node-human">
-          <span class="node-icon">✓</span>
-          <strong>Human gate</strong>
-          <small>Review + approve</small>
-        </div>
-        <div class="mesh-node node-action">
-          <span class="node-icon">04</span>
-          <strong>Action</strong>
-          <small>System of record</small>
-        </div>
-        <svg class="mesh-paths" viewBox="0 0 560 520" aria-hidden="true">
-          <path d="M95 108 C185 65 225 168 280 236" />
-          <path d="M280 236 C335 166 394 106 472 130" />
-          <path d="M280 236 C334 305 370 398 457 408" />
-        </svg>
-        <span class="event-dot dot-one"></span>
-        <span class="event-dot dot-two"></span>
-        <span class="event-dot dot-three"></span>
-      </div>
+      <div class="industry-grid" id="industry-grid"></div>
     </section>
 
-    <section class="ticker" aria-label="The Agent Mesh difference">
-      <div><strong>Not another chatbot.</strong> An operating layer for agents that start from business change.</div>
-    </section>
-
-    <section class="section section-how" id="how" aria-labelledby="how-title">
-      <div class="section-heading reveal">
-        <p class="eyebrow"><span></span> One governed operating model</p>
-        <h2 id="how-title">From event to outcome — <em>without losing control.</em></h2>
-        <p>Keep deterministic work deterministic. Bring in an AI agent for the uncertain tail. Put a person in charge of every consequential action.</p>
+    <section class="screen" id="cards-screen" aria-labelledby="cards-title" hidden>
+      <div class="screen-heading">
+        <p class="eyebrow" id="cards-eyebrow">Industry</p>
+        <h1 id="cards-title">Three agent patterns</h1>
       </div>
-
-      <div class="flow-grid">
-        <article class="flow-card reveal">
-          <span class="flow-number">01</span>
-          <div class="flow-icon" aria-hidden="true">⌁</div>
-          <h3>Sense the pattern</h3>
-          <p>Correlate events across systems, detect a missing event, a broken sequence or drift over time.</p>
-        </article>
-        <article class="flow-card reveal">
-          <span class="flow-number">02</span>
-          <div class="flow-icon" aria-hidden="true">◇</div>
-          <h3>Make the decision</h3>
-          <p>Use rules and typed decision models first, with probability and evidence attached.</p>
-        </article>
-        <article class="flow-card reveal">
-          <span class="flow-number">03</span>
-          <div class="flow-icon" aria-hidden="true">✦</div>
-          <h3>Call the right agent</h3>
-          <p>Invoke AI only when context and judgment are needed, across models, frameworks and clouds.</p>
-        </article>
-        <article class="flow-card reveal">
-          <span class="flow-number">04</span>
-          <div class="flow-icon" aria-hidden="true">✓</div>
-          <h3>Act with a human gate</h3>
-          <p>Approve before acting, review reversible actions, escalate uncertainty and preserve the audit trail.</p>
-        </article>
-      </div>
-    </section>
-
-    <section class="section section-patterns" id="patterns" aria-labelledby="patterns-title">
-      <div class="patterns-header reveal">
-        <div class="section-heading align-left">
-          <p class="eyebrow"><span></span> The opportunity cards</p>
-          <h2 id="patterns-title">Find the exception your team <em>should never chase again.</em></h2>
-          <p>Choose an industry, then open a pattern to see the trigger, decision, action and human checkpoint.</p>
-        </div>
-        <div class="pattern-count"><strong id="visible-count">18</strong><span>patterns<br>ready to explore</span></div>
-      </div>
-
-      <div class="filter-wrap reveal">
-        <div class="filters" role="group" aria-label="Filter use cases by industry">
-          <button class="filter active" type="button" data-filter="all" aria-pressed="true">All</button>
-          <button class="filter" type="button" data-filter="finance" aria-pressed="false">Financial services</button>
-          <button class="filter" type="button" data-filter="manufacturing" aria-pressed="false">Manufacturing</button>
-          <button class="filter" type="button" data-filter="retail" aria-pressed="false">Retail &amp; CPG</button>
-          <button class="filter" type="button" data-filter="energy" aria-pressed="false">Energy &amp; utilities</button>
-          <button class="filter" type="button" data-filter="logistics" aria-pressed="false">Transport &amp; logistics</button>
-          <button class="filter" type="button" data-filter="pharma" aria-pressed="false">Life sciences</button>
-        </div>
-      </div>
-
-      <div class="pattern-grid" id="pattern-grid" aria-live="polite"></div>
-    </section>
-
-    <section class="control-section" aria-labelledby="control-title">
-      <div class="control-copy reveal">
-        <p class="eyebrow light"><span></span> Designed for trust</p>
-        <h2 id="control-title">Autonomy has a dial.<br><em>You decide where it stops.</em></h2>
-        <p>Every pattern can use the level of oversight the outcome deserves — from instant action with review to explicit four-eyes approval.</p>
-        <a class="button button-light" href="#pilot">Design your first governed workflow <span aria-hidden="true">→</span></a>
-      </div>
-      <div class="gate-list reveal">
-        <article><span>01</span><div><h3>Approve before act</h3><p>For irreversible, regulated or money-moving decisions.</p></div></article>
-        <article><span>02</span><div><h3>Act, then review</h3><p>For high-volume actions that are safe to reverse.</p></div></article>
-        <article><span>03</span><div><h3>Escalate uncertainty</h3><p>Below the confidence floor, a person decides with the evidence.</p></div></article>
-        <article><span>04</span><div><h3>Sample and audit</h3><p>Review a fixed share of outcomes and continuously improve.</p></div></article>
-      </div>
-    </section>
-
-    <section class="section section-objections" aria-labelledby="difference-title">
-      <div class="section-heading reveal">
-        <p class="eyebrow"><span></span> Why a mesh</p>
-        <h2 id="difference-title">Let every platform do its best work. <em>Connect what happens between them.</em></h2>
-      </div>
-      <div class="difference-grid">
-        <article class="difference-card reveal"><span>01</span><h3>Starts from change</h3><p>Agents react to what the business does — including missing events — instead of waiting for a prompt or schedule.</p></article>
-        <article class="difference-card reveal"><span>02</span><h3>Works across estates</h3><p>Coordinate agents and systems without forcing every team, model and workflow into one platform.</p></article>
-        <article class="difference-card reveal"><span>03</span><h3>Uses AI on purpose</h3><p>Keep joins, timers, routing and policy deterministic. Spend model tokens only where judgment adds value.</p></article>
-        <article class="difference-card reveal"><span>04</span><h3>Leaves one trail</h3><p>Carry identity, evidence and decisions through the workflow so people can understand and govern the outcome.</p></article>
-      </div>
-    </section>
-
-    <section class="pilot-section" id="pilot" aria-labelledby="pilot-title">
-      <div class="pilot-card reveal">
-        <div class="pilot-copy">
-          <p class="eyebrow"><span></span> Six-week pilot</p>
-          <h2 id="pilot-title">Start with one exception.<br><em>Prove one outcome.</em></h2>
-          <p>Bring two systems, one real event stream and the person who owns the decision. Leave with a measured workflow and a business case.</p>
-          <a class="button button-primary" href="https://solace.com/contact/" target="_blank" rel="noreferrer">Talk to us about your pilot <span aria-hidden="true">↗</span></a>
-        </div>
-        <ol class="pilot-steps">
-          <li><span>Weeks 1–2</span><strong>Pattern + decision</strong><small>Replay real events. Train on historical outcomes.</small></li>
-          <li><span>Weeks 3–4</span><strong>Action + human gate</strong><small>Connect a non-production target. Put control in place.</small></li>
-          <li><span>Weeks 5–6</span><strong>Measure + decide</strong><small>Prove latency, accuracy and the business number.</small></li>
-        </ol>
-      </div>
+      <div class="case-grid" id="case-grid"></div>
     </section>
   </main>
 
   <footer>
-    <a class="brand" href="#top" aria-label="Back to top">
-      <img src="assets/solace-logo.svg" alt="Solace" width="86" height="22">
-      <span>Agent Mesh</span>
-    </a>
-    <p>Illustrative use cases and value models. Validate inputs and outcomes in your environment.</p>
-    <a href="https://solace.com" target="_blank" rel="noreferrer">solace.com <span aria-hidden="true">↗</span></a>
+    <p>Pattern → Decision → Action → Human gate</p>
   </footer>
 
-  <dialog class="case-dialog" id="case-dialog" aria-labelledby="dialog-title">
+  <dialog id="case-dialog" aria-labelledby="dialog-title">
     <div class="dialog-panel">
-      <div class="dialog-topline"></div>
-      <button class="dialog-close" type="button" aria-label="Close use case">×</button>
+      <button class="dialog-close" type="button" aria-label="Close">×</button>
       <div id="dialog-content"></div>
     </div>
   </dialog>
-
-  <noscript><p class="noscript">JavaScript is required to browse the interactive use-case cards.</p></noscript>
 </body>
 </html>

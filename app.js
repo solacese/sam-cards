@@ -1,108 +1,122 @@
-const cases = [
-  {industry:'finance', industryLabel:'Financial services', title:'Trade break prevention', summary:'Catch a missing or mismatched confirmation before it becomes a settlement break.', pattern:'A product is booked across several systems, but one confirmation is missing or mismatched after the agreed window.', decision:'Classify the break and its likely cause with a probability and supporting evidence.', action:'Reconcile simple classes or route a complete evidence pack to the right desk.', gate:'Approve before act', owner:'Operations desk', value:'Compress evidence assembly from 30–60 minutes to a few minutes; reduce penalties and leakage.'},
-  {industry:'finance', industryLabel:'Financial services', title:'Market move with context', summary:'Turn a price move, news event and order-flow shift into one decision-ready brief.', pattern:'A market moves beyond a defined band while a news or calendar event and client flow change occur.', decision:'Classify the move as macro-driven, flow-driven or noise.', action:'Deliver a context pack and a pre-hedge proposal to the desk.', gate:'Approve before act', owner:'Trading desk', value:'Give traders back 5–10 minutes per material move and help them react with context.'},
-  {industry:'finance', industryLabel:'Financial services', title:'Payment repair', summary:'Repair routine payment failures while protecting sensitive changes and screening decisions.', pattern:'A payment fails validation and is correlated with prior beneficiary and screening data.', decision:'Classify format, beneficiary, routing or screening issues.', action:'Auto-repair safe format issues, hold sensitive cases and route exceptions.', gate:'Tiered approval', owner:'Payments operations', value:'Reduce many manual repairs from 10–15 minutes to under a minute.'},
-
-  {industry:'manufacturing', industryLabel:'Manufacturing', title:'Quote on live capacity', summary:'Respond to an RFQ using live line load, supply position and margin guardrails.', pattern:'An RFQ arrives as capacity and commodity conditions change across operational systems.', decision:'Calculate margin band and win likelihood.', action:'Generate an in-band quote and draft the customer narrative.', gate:'Approve exceptions', owner:'Sales lead', value:'Cut quote work by 1–2 hours and move turnaround from days to minutes.'},
-  {industry:'manufacturing', industryLabel:'Manufacturing', title:'Stoppage before it happens', summary:'Spot equipment drift and a missing cycle before production stops.', pattern:'Equipment tags drift and an expected cycle-complete event goes missing.', decision:'Classify tooling wear, material starvation or an operator issue.', action:'Reserve a spare, propose a sequence change and alert the shift lead.', gate:'Tiered approval', owner:'Shift lead', value:'Turn 30–60 minutes of triage into a two-minute, evidence-led response.'},
-  {industry:'manufacturing', industryLabel:'Manufacturing', title:'Part-change blast radius', summary:'Know which orders, assets and customers a design change touches before release.', pattern:'An engineering change appears while related orders, installed assets and inventory remain active.', decision:'Assess impact class and urgency.', action:'Prepare a quality hold, impacted-fleet list and draft notices.', gate:'Approve before act', owner:'Quality manager', value:'Compress cross-team impact analysis from days to hours.'},
-
-  {industry:'retail', industryLabel:'Retail & CPG', title:'Phantom inventory', summary:'Find the shelf that looks stocked in the system but is losing sales in real life.', pattern:'An everyday item stops selling while stock says positive and shelf signals say empty.', decision:'Distinguish phantom stock, a slow day and a misplaced item.', action:'Create a store task, correct stock and propose a reorder.', gate:'Act, then review', owner:'Store manager', value:'Move detection from the next count to minutes and recover missed sales.'},
-  {industry:'retail', industryLabel:'Retail & CPG', title:'Promotion integrity', summary:'Catch a price change that failed to reach the point of sale.', pattern:'A promotion is published, but transactions at some stores still use the old price.', decision:'Classify a propagation failure or a local override.', action:'Propose the corrected price, hold the campaign and queue affected refunds.', gate:'Approve price change', owner:'Category manager', value:'Replace complaint-led detection with an enterprise-wide response in minutes.'},
-  {industry:'retail', industryLabel:'Retail & CPG', title:'Order rescue', summary:'Reroute a click-and-collect order before the customer arrives disappointed.', pattern:'An order is placed but a pick or handover event is absent beyond its SLA.', decision:'Determine whether another store or a later slot can rescue the order.', action:'Reroute and proactively update the customer.', gate:'Act, then review', owner:'Store operations', value:'Save service handling and protect revenue from recoverable failed orders.'},
-
-  {industry:'energy', industryLabel:'Energy & utilities', title:'Alarm storm to one work order', summary:'Turn dozens of related alarms into one root-cause brief and coordinated response.', pattern:'Many alarms fire from one asset group inside a short window.', decision:'Identify the likely root-cause class with confidence.', action:'Create one consolidated work order and attach a crew brief.', gate:'Approve dispatch', owner:'Control room', value:'Reduce multi-hour alarm triage to roughly 15 minutes and accelerate restoration.'},
-  {industry:'energy', industryLabel:'Energy & utilities', title:'Imbalance to trade', summary:'Connect generation drift and intraday price movement before the position worsens.', pattern:'Forecast and actual generation diverge as an intraday price spike appears.', decision:'Recommend rebalance, wait or hedge, with sizing.', action:'Send an evidence-backed trade proposal.', gate:'Approve before act', owner:'Trading desk', value:'Bring a 10–15 minute reaction down toward one minute.'},
-  {industry:'energy', industryLabel:'Energy & utilities', title:'Data protection by design', summary:'Start the privacy workflow the moment sensitive data appears on the mesh.', pattern:'A new topic or schema is published with fields that may contain personal data.', decision:'Determine whether an impact assessment is needed and select the template.', action:'Open the assessment, notify the owner and collect available context.', gate:'Act, then review', owner:'Data protection officer', value:'Reduce days of assessment preparation to about half a day.'},
-
-  {industry:'logistics', industryLabel:'Transport & logistics', title:'Train went dark', summary:'Detect a missing heartbeat while the timetable says the train should be moving.', pattern:'Telemetry stops while journey and timetable data indicate active movement.', decision:'Classify communications loss, power event or genuine stop.', action:'Create a triage brief, alert the depot and draft passenger information.', gate:'Approve instructions', owner:'Operations controller', value:'Move incident detection from 15–30 minutes to around one minute.'},
-  {industry:'logistics', industryLabel:'Transport & logistics', title:'Shipment margin guardian', summary:'Evaluate reroute economics the moment delay and cost cross a threshold.', pattern:'A vessel delay combines with booking margin and reroute cost to threaten the shipment.', decision:'Recommend reroute, renegotiate or accept for each booking.', action:'Present options with expected return and operational impact.', gate:'Approve before act', owner:'Trade manager', value:'Compress hours of delay analysis to roughly 20 minutes and protect margin.'},
-  {industry:'logistics', industryLabel:'Transport & logistics', title:'Act before the call', summary:'Resolve a connected-device fault before it becomes a service ticket.', pattern:'Telemetry shows a failure signature while no customer ticket exists yet.', decision:'Classify device, network or account fault.', action:'Fix, replace or warn the customer upstream of the service desk.', gate:'Tiered approval', owner:'Service operations', value:'Move first response from hours to minutes and prevent avoidable tickets.'},
-
-  {industry:'pharma', industryLabel:'Life sciences', title:'Cold-chain excursion', summary:'Assess product stability as temperature drift happens, not after the shipment arrives.', pattern:'Temperature drifts over time and is joined with product stability limits and shipment location.', decision:'Classify within budget, quarantine or destroy.', action:'Open the deviation, assemble evidence and propose disposition.', gate:'Approve before act', owner:'Quality assurance', value:'Cut investigation from 4–8 hours to about one hour and avoid unnecessary write-offs.'},
-  {industry:'pharma', industryLabel:'Life sciences', title:'Batch deviation to release', summary:'Assemble a complete investigation pack while production and release decisions continue.', pattern:'A deviation is correlated with the batch record, equipment events and prior line history.', decision:'Classify the deviation and whether release work can proceed in parallel.', action:'Prepare the investigation, draft corrective action and flag the release decision.', gate:'Approve before act', owner:'Qualified person', value:'Save 10–20 quality hours per deviation and shorten closure cycles.'},
-  {industry:'pharma', industryLabel:'Life sciences', title:'Adverse-event signal', summary:'Connect the same product and reaction across channels before the clock is lost.', pattern:'Matching product and reaction signals appear across intake channels within a window.', decision:'Classify seriousness and whether expedited handling applies.', action:'Create and prefill the case, route it and start the reporting clock.', gate:'Approve submission', owner:'Safety physician', value:'Reduce intake and triage effort while protecting regulated reporting timelines.'}
+const industries = [
+  { id: 'finance', name: 'Financial services', icon: '€' },
+  { id: 'manufacturing', name: 'Manufacturing', icon: '⚙' },
+  { id: 'retail', name: 'Retail & CPG', icon: '▦' },
+  { id: 'energy', name: 'Energy & utilities', icon: '⌁' },
+  { id: 'logistics', name: 'Transport & logistics', icon: '→' },
+  { id: 'pharma', name: 'Pharma & life sciences', icon: '+' }
 ];
 
-const grid = document.querySelector('#pattern-grid');
+const cases = {
+  finance: [
+    { title: 'Trade break prevention', summary: 'Catch a missing or mismatched confirmation before settlement.', pattern: 'One of several booking confirmations is missing or mismatched after T.', decision: 'Break class and likely cause.', action: 'Reconcile simple cases or route the evidence.', gate: 'Approve booking changes', owner: 'Operations desk', value: '30 to 60 minutes saved per break' },
+    { title: 'Market move with context', summary: 'Join price, news and client flow into one desk brief.', pattern: 'A market move crosses a band with related news and order flow.', decision: 'Macro, flow driven or noise.', action: 'Send context and a pre-hedge proposal.', gate: 'Approve every hedge', owner: 'Trading desk', value: '5 to 10 minutes saved per move' },
+    { title: 'Payment repair', summary: 'Repair routine failures and route sensitive exceptions.', pattern: 'A payment fails validation with beneficiary and screening context.', decision: 'Format, beneficiary, routing or screening.', action: 'Repair safe formats, hold or route the rest.', gate: 'Approve sensitive changes', owner: 'Payments operations', value: '10 to 15 minutes saved per repair' }
+  ],
+  manufacturing: [
+    { title: 'Quote on live capacity', summary: 'Price an RFQ with current line load and material cost.', pattern: 'An RFQ arrives as capacity or commodity conditions change.', decision: 'Margin band and win likelihood.', action: 'Create the quote and customer narrative.', gate: 'Approve margin exceptions', owner: 'Sales lead', value: '1 to 2 hours saved per quote' },
+    { title: 'Stoppage before it happens', summary: 'Spot equipment drift and a missing cycle early.', pattern: 'A tag drifts and cycle-complete is absent for two cycles.', decision: 'Tooling, material or operator cause.', action: 'Reserve a spare, propose a new sequence and alert.', gate: 'Approve resequencing', owner: 'Shift lead', value: 'Triage in about 2 minutes' },
+    { title: 'Part change blast radius', summary: 'Find affected orders, assets and customers.', pattern: 'An engineering change meets open orders, fleet and inventory.', decision: 'Impact class and urgency.', action: 'Prepare a hold, impact list and notices.', gate: 'Approve hold and notices', owner: 'Quality manager', value: 'Analysis reduced from days to hours' }
+  ],
+  retail: [
+    { title: 'Phantom inventory', summary: 'Find stock that exists in the system but not on the shelf.', pattern: 'Sales stop while stock is positive and the shelf is empty.', decision: 'Phantom stock, slow day or misplaced item.', action: 'Create a task, correct stock and reorder.', gate: 'Review stock correction', owner: 'Store manager', value: 'Recover missed sales in minutes' },
+    { title: 'Promotion integrity', summary: 'Catch a price change that missed the point of sale.', pattern: 'POS transactions still use an old price after publication.', decision: 'Propagation failure or local override.', action: 'Correct price, hold campaign and queue refunds.', gate: 'Approve price changes', owner: 'Category manager', value: 'Detect errors before complaints' },
+    { title: 'Order rescue', summary: 'Reroute a click-and-collect order before pickup.', pattern: 'Pick or handover is absent beyond the SLA.', decision: 'Another store, later slot or no rescue.', action: 'Reroute and notify the customer.', gate: 'Approve refunds', owner: 'Store operations', value: 'Protect recoverable order revenue' }
+  ],
+  energy: [
+    { title: 'Alarm storm to one work order', summary: 'Turn many related alarms into one response.', pattern: 'Many alarms fire from one asset group in two minutes.', decision: 'Root-cause class with probability.', action: 'Create one work order and crew brief.', gate: 'Approve dispatch', owner: 'Control room', value: 'Hours of triage reduced to minutes' },
+    { title: 'Imbalance to trade', summary: 'Connect generation drift with intraday price.', pattern: 'Forecast and actual generation diverge during a price spike.', decision: 'Rebalance, wait or hedge.', action: 'Send a sized trade proposal.', gate: 'Approve every trade', owner: 'Trading desk', value: 'React in about 1 minute' },
+    { title: 'Data protection by design', summary: 'Start privacy review when sensitive data appears.', pattern: 'A new topic or schema includes personal data.', decision: 'DPIA required and template.', action: 'Open the DPIA, notify and collect context.', gate: 'Review the assessment', owner: 'Data protection officer', value: 'Days of preparation reduced to hours' }
+  ],
+  logistics: [
+    { title: 'Train went dark', summary: 'Detect a missing heartbeat while the train is moving.', pattern: 'Telemetry is absent but the timetable shows an active journey.', decision: 'Comms loss, power event or genuine stop.', action: 'Send a triage brief and draft passenger information.', gate: 'Approve instructions', owner: 'Operations controller', value: 'Detect in about 1 minute' },
+    { title: 'Shipment margin guardian', summary: 'Evaluate reroute economics when a vessel is delayed.', pattern: 'Delay, booking margin and reroute cost cross a threshold.', decision: 'Reroute, renegotiate or accept.', action: 'Present options with ROI.', gate: 'Approve reroutes', owner: 'Trade manager', value: 'Hours of analysis reduced to 20 minutes' },
+    { title: 'Act before the call', summary: 'Resolve a device fault before a ticket exists.', pattern: 'Telemetry shows a fault signature with no ticket yet.', decision: 'Device, network or account issue.', action: 'Fix, replace or warn the customer.', gate: 'Approve replacements', owner: 'Service operations', value: 'Prevent avoidable tickets' }
+  ],
+  pharma: [
+    { title: 'Cold-chain excursion', summary: 'Assess product stability while temperature drifts.', pattern: 'Temperature drift meets stability limits and location.', decision: 'Within budget, quarantine or destroy.', action: 'Open the deviation and propose disposition.', gate: 'Approve disposition', owner: 'Quality assurance', value: '4 to 8 hours reduced to about 1' },
+    { title: 'Batch deviation to release', summary: 'Build the investigation pack while release continues.', pattern: 'A deviation meets batch, equipment and line history.', decision: 'Deviation class and release path.', action: 'Draft the investigation and corrective action.', gate: 'Approve release', owner: 'Qualified person', value: '10 to 20 hours saved per deviation' },
+    { title: 'Adverse event signal', summary: 'Connect the same product and reaction across channels.', pattern: 'Matching signals appear across intake channels.', decision: 'Seriousness and expedited status.', action: 'Create, prefill and route the case.', gate: 'Approve submission', owner: 'Safety physician', value: '30 to 50 percent less intake effort' }
+  ]
+};
+
+const industryScreen = document.querySelector('#industry-screen');
+const cardsScreen = document.querySelector('#cards-screen');
+const industryGrid = document.querySelector('#industry-grid');
+const caseGrid = document.querySelector('#case-grid');
+const cardsEyebrow = document.querySelector('#cards-eyebrow');
+const cardsTitle = document.querySelector('#cards-title');
+const backButton = document.querySelector('#back-button');
+const homeButton = document.querySelector('#home-button');
 const dialog = document.querySelector('#case-dialog');
 const dialogContent = document.querySelector('#dialog-content');
-const visibleCount = document.querySelector('#visible-count');
 
-const safe = value => String(value).replace(/[&<>'"]/g, character => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[character]));
-
-function cardTemplate(item, index) {
-  return `
-    <button class="pattern-card reveal" type="button" data-industry="${safe(item.industry)}" data-index="${index}">
-      <span class="card-meta">
-        <span class="industry-tag">${safe(item.industryLabel)}</span>
-        <span class="gate-tag">${safe(item.gate)}</span>
-      </span>
-      <h3>${safe(item.title)}</h3>
-      <p>${safe(item.summary)}</p>
-      <footer><span>Explore pattern</span><span aria-hidden="true">→</span></footer>
-    </button>`;
+function showIndustries() {
+  cardsScreen.hidden = true;
+  industryScreen.hidden = false;
+  backButton.hidden = true;
+  document.title = 'Solace Agent Mesh Sales Cards';
+  window.scrollTo(0, 0);
 }
 
-grid.innerHTML = cases.map(cardTemplate).join('');
+function showIndustry(id) {
+  const industry = industries.find(item => item.id === id);
+  if (!industry) return;
+  cardsEyebrow.textContent = industry.name;
+  cardsTitle.textContent = 'Three agent patterns';
+  caseGrid.innerHTML = cases[id].map((item, index) => `
+    <button class="case-card" type="button" data-industry="${id}" data-index="${index}">
+      <span class="case-number">0${index + 1}</span>
+      <h2>${item.title}</h2>
+      <p>${item.summary}</p>
+      <span class="case-tags"><span class="gate-tag">${item.gate}</span><span class="value-tag">${item.value}</span></span>
+      <span class="open-label">Open card <span aria-hidden="true">→</span></span>
+    </button>`).join('');
+  industryScreen.hidden = true;
+  cardsScreen.hidden = false;
+  backButton.hidden = false;
+  document.title = `${industry.name} | Solace Agent Mesh`;
+  window.scrollTo(0, 0);
+}
 
-function openCase(index) {
-  const item = cases[index];
-  if (!item) return;
+function openCase(industryId, index) {
+  const industry = industries.find(item => item.id === industryId);
+  const item = cases[industryId]?.[index];
+  if (!industry || !item) return;
   dialogContent.innerHTML = `
-    <p class="dialog-eyebrow">${safe(item.industryLabel)} · Opportunity card</p>
-    <h2 id="dialog-title">${safe(item.title)}</h2>
-    <p class="dialog-lead">${safe(item.summary)}</p>
-    <div class="dialog-steps">
-      <div class="dialog-step"><span>01 · Pattern</span><p>${safe(item.pattern)}</p></div>
-      <div class="dialog-step"><span>02 · Decision</span><p>${safe(item.decision)}</p></div>
-      <div class="dialog-step"><span>03 · Action</span><p>${safe(item.action)}</p></div>
-    </div>
-    <div class="dialog-bottom">
-      <div class="dialog-gate"><span>Human gate</span><p><strong>${safe(item.gate)}</strong><br>${safe(item.owner)} owns the decision.</p></div>
-      <div><span>Value to validate</span><p>${safe(item.value)}</p></div>
-    </div>
-    <p class="dialog-note">Illustrative pattern and value hypothesis. Validate process volumes, controls and outcomes with your own data during discovery.</p>`;
+    <p class="dialog-industry">${industry.name}</p>
+    <h2 id="dialog-title">${item.title}</h2>
+    <div class="dialog-grid">
+      <div class="dialog-item"><span>Pattern</span><p>${item.pattern}</p></div>
+      <div class="dialog-item"><span>Decision</span><p>${item.decision}</p></div>
+      <div class="dialog-item"><span>Action</span><p>${item.action}</p></div>
+      <div class="dialog-item gate"><span>Human gate</span><p><strong>${item.gate}</strong><br>${item.owner}</p></div>
+      <div class="dialog-item"><span>Value</span><p>${item.value}</p></div>
+    </div>`;
   dialog.showModal();
   document.body.style.overflow = 'hidden';
 }
 
-grid.addEventListener('click', event => {
-  const card = event.target.closest('.pattern-card');
-  if (card) openCase(Number(card.dataset.index));
+industryGrid.innerHTML = industries.map((industry, index) => `
+  <button class="industry-card" type="button" data-industry="${industry.id}">
+    <span class="industry-icon" aria-hidden="true">${industry.icon}</span>
+    <h2>${industry.name}</h2>
+    <p>3 agent patterns</p>
+    <span class="card-arrow" aria-hidden="true">→</span>
+  </button>`).join('');
+
+industryGrid.addEventListener('click', event => {
+  const card = event.target.closest('.industry-card');
+  if (card) showIndustry(card.dataset.industry);
 });
 
+caseGrid.addEventListener('click', event => {
+  const card = event.target.closest('.case-card');
+  if (card) openCase(card.dataset.industry, Number(card.dataset.index));
+});
+
+backButton.addEventListener('click', showIndustries);
+homeButton.addEventListener('click', showIndustries);
 document.querySelector('.dialog-close').addEventListener('click', () => dialog.close());
-dialog.addEventListener('click', event => {
-  if (event.target === dialog) dialog.close();
-});
+dialog.addEventListener('click', event => { if (event.target === dialog) dialog.close(); });
 dialog.addEventListener('close', () => { document.body.style.overflow = ''; });
-
-const filters = [...document.querySelectorAll('.filter')];
-filters.forEach(button => button.addEventListener('click', () => {
-  const filter = button.dataset.filter;
-  filters.forEach(item => {
-    const selected = item === button;
-    item.classList.toggle('active', selected);
-    item.setAttribute('aria-pressed', String(selected));
-  });
-  let count = 0;
-  document.querySelectorAll('.pattern-card').forEach(card => {
-    const visible = filter === 'all' || card.dataset.industry === filter;
-    card.hidden = !visible;
-    if (visible) count += 1;
-  });
-  visibleCount.textContent = count;
-}));
-
-const observer = new IntersectionObserver(entries => {
-  entries.forEach(entry => {
-    if (entry.isIntersecting) {
-      entry.target.classList.add('visible');
-      observer.unobserve(entry.target);
-    }
-  });
-}, { threshold: .09 });
-
-document.querySelectorAll('.reveal').forEach(element => observer.observe(element));
-window.addEventListener('scroll', () => document.querySelector('#site-header').classList.toggle('scrolled', window.scrollY > 18), { passive: true });
