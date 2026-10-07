@@ -4,14 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#ffffff">
-  <meta name="description" content="Solace Agent Mesh sales cheat sheet with three agent patterns for six industries.">
+  <meta name="description" content="Solace Agent Mesh sales cheat sheet for six industries and five common objections.">
   <title>Solace Agent Mesh Sales Cards</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="icon" href="assets/solace-logo.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=2">
-  <script src="app.js?v=2" defer></script>
+  <link rel="stylesheet" href="styles.css?v=3">
+  <script src="app.js?v=3" defer></script>
 </head>
 <body>
   <header class="site-header">
@@ -21,37 +21,35 @@
     </button>
     <p>Sales cheat sheet</p>
     <button class="back-button" id="back-button" type="button" hidden>
-      <span aria-hidden="true">←</span> Industries
+      <span aria-hidden="true">←</span> Back
     </button>
   </header>
 
   <main>
-    <section class="screen active" id="industry-screen" aria-labelledby="industry-title">
+    <section class="home-screen" id="home-screen" aria-labelledby="home-title">
       <div class="screen-heading">
         <p class="eyebrow">Solace Agent Mesh</p>
-        <h1 id="industry-title">Choose an industry</h1>
+        <h1 id="home-title">Choose an industry</h1>
       </div>
       <div class="industry-grid" id="industry-grid"></div>
+      <button class="objections-link" id="objections-button" type="button">
+        <span class="objections-icon" aria-hidden="true">?</span>
+        <strong>Top 5 objections</strong>
+        <span class="arrow" aria-hidden="true">→</span>
+      </button>
     </section>
 
-    <section class="screen" id="cards-screen" aria-labelledby="cards-title" hidden>
-      <div class="screen-heading">
-        <p class="eyebrow" id="cards-eyebrow">Industry</p>
-        <h1 id="cards-title">Three agent patterns</h1>
+    <section class="detail-screen" id="detail-screen" aria-labelledby="detail-title" hidden>
+      <div class="detail-heading">
+        <p class="eyebrow" id="detail-eyebrow">Industry</p>
+        <h1 id="detail-title">Industry</h1>
       </div>
-      <div class="case-grid" id="case-grid"></div>
+      <div class="detail-list" id="detail-list"></div>
     </section>
   </main>
 
   <footer>
     <p>Pattern → Decision → Action → Human gate</p>
   </footer>
-
-  <dialog id="case-dialog" aria-labelledby="dialog-title">
-    <div class="dialog-panel">
-      <button class="dialog-close" type="button" aria-label="Close">×</button>
-      <div id="dialog-content"></div>
-    </div>
-  </dialog>
 </body>
 </html>

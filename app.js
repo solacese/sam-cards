@@ -1,10 +1,10 @@
 const industries = [
-  { id: 'finance', name: 'Financial services', icon: '€' },
+  { id: 'finance', name: 'Finance', icon: '€' },
   { id: 'manufacturing', name: 'Manufacturing', icon: '⚙' },
-  { id: 'retail', name: 'Retail & CPG', icon: '▦' },
+  { id: 'retail', name: 'Retail / CPG', icon: '▦' },
   { id: 'energy', name: 'Energy & utilities', icon: '⌁' },
-  { id: 'logistics', name: 'Transport & logistics', icon: '→' },
-  { id: 'pharma', name: 'Pharma & life sciences', icon: '+' }
+  { id: 'logistics', name: 'Logistics', icon: '→' },
+  { id: 'pharma', name: 'Life sciences', icon: '+' }
 ];
 
 const cases = {
@@ -24,84 +24,102 @@ const cases = {
     { title: 'Order rescue', summary: 'Reroute a click-and-collect order before pickup.', pattern: 'Pick or handover is absent beyond the SLA.', decision: 'Another store, later slot or no rescue.', action: 'Reroute and notify the customer.', gate: 'Approve refunds', owner: 'Store operations', value: 'Protect recoverable order revenue' }
   ],
   energy: [
-    { title: 'Alarm storm to one work order', summary: 'Turn many related alarms into one response.', pattern: 'Many alarms fire from one asset group in two minutes.', decision: 'Root-cause class with probability.', action: 'Create one work order and crew brief.', gate: 'Approve dispatch', owner: 'Control room', value: 'Hours of triage reduced to minutes' },
-    { title: 'Imbalance to trade', summary: 'Connect generation drift with intraday price.', pattern: 'Forecast and actual generation diverge during a price spike.', decision: 'Rebalance, wait or hedge.', action: 'Send a sized trade proposal.', gate: 'Approve every trade', owner: 'Trading desk', value: 'React in about 1 minute' },
-    { title: 'Data protection by design', summary: 'Start privacy review when sensitive data appears.', pattern: 'A new topic or schema includes personal data.', decision: 'DPIA required and template.', action: 'Open the DPIA, notify and collect context.', gate: 'Review the assessment', owner: 'Data protection officer', value: 'Days of preparation reduced to hours' }
+    { title: 'Alarm storm to one work order', summary: 'Turn many related alarms into one response.', pattern: '40 alarms from one substation or asset group inside two minutes.', decision: 'Root-cause class with probability.', action: 'Create one consolidated work order with a crew brief.', gate: 'Approve dispatch', owner: 'Control room', value: 'Triage reduced from 2 to 4 hours to about 15 minutes' },
+    { title: 'Imbalance to trade', summary: 'Connect generation drift with intraday price.', pattern: 'Forecast versus actual generation drifts past a band during a price spike.', decision: 'Rebalance now, wait or hedge.', action: 'Send a trade proposal with sizing.', gate: 'Approve every trade', owner: 'Trading desk', value: 'Reaction reduced from 10 to 15 minutes to about 1 minute' },
+    { title: 'Data protection by design', summary: 'Start privacy review when sensitive data appears.', pattern: 'A new topic or schema is published with PII fields present.', decision: 'DPIA required or not, and which template.', action: 'Open the DPIA, notify the data owner and collect first answers.', gate: 'Review the assessment', owner: 'Data protection officer', value: 'DPIA effort reduced from 2 to 5 days to about half a day' }
   ],
   logistics: [
-    { title: 'Train went dark', summary: 'Detect a missing heartbeat while the train is moving.', pattern: 'Telemetry is absent but the timetable shows an active journey.', decision: 'Comms loss, power event or genuine stop.', action: 'Send a triage brief and draft passenger information.', gate: 'Approve instructions', owner: 'Operations controller', value: 'Detect in about 1 minute' },
-    { title: 'Shipment margin guardian', summary: 'Evaluate reroute economics when a vessel is delayed.', pattern: 'Delay, booking margin and reroute cost cross a threshold.', decision: 'Reroute, renegotiate or accept.', action: 'Present options with ROI.', gate: 'Approve reroutes', owner: 'Trade manager', value: 'Hours of analysis reduced to 20 minutes' },
-    { title: 'Act before the call', summary: 'Resolve a device fault before a ticket exists.', pattern: 'Telemetry shows a fault signature with no ticket yet.', decision: 'Device, network or account issue.', action: 'Fix, replace or warn the customer.', gate: 'Approve replacements', owner: 'Service operations', value: 'Prevent avoidable tickets' }
+    { title: 'Train went dark', summary: 'Detect a missing heartbeat while the train is moving.', pattern: 'Telemetry is absent but the timetable shows an active journey.', decision: 'Comms loss, power event or genuine stop.', action: 'Send a triage brief and draft passenger information.', gate: 'Approve instructions', owner: 'Operations controller', value: 'Detection reduced from 15 to 30 minutes to about 1 minute' },
+    { title: 'Shipment margin guardian', summary: 'Evaluate reroute economics when a vessel is delayed.', pattern: 'Delay, booking margin and reroute cost cross a threshold.', decision: 'Reroute, renegotiate or accept.', action: 'Present options with ROI.', gate: 'Approve reroutes', owner: 'Trade manager', value: 'Analysis reduced from hours to about 20 minutes' },
+    { title: 'Act before the call', summary: 'Resolve a device fault before a ticket exists.', pattern: 'Telemetry shows a fault signature with no ticket yet.', decision: 'Device, network or account issue.', action: 'Fix, replace or warn the customer.', gate: 'Approve replacements', owner: 'Service operations', value: 'Prevent avoidable tickets and reduce handling cost' }
   ],
   pharma: [
-    { title: 'Cold-chain excursion', summary: 'Assess product stability while temperature drifts.', pattern: 'Temperature drift meets stability limits and location.', decision: 'Within budget, quarantine or destroy.', action: 'Open the deviation and propose disposition.', gate: 'Approve disposition', owner: 'Quality assurance', value: '4 to 8 hours reduced to about 1' },
+    { title: 'Cold-chain excursion', summary: 'Assess product stability while temperature drifts.', pattern: 'Temperature drift meets stability limits and shipment location.', decision: 'Within budget, quarantine or destroy.', action: 'Open the deviation, assemble evidence and propose disposition.', gate: 'Approve disposition', owner: 'Quality assurance', value: 'Investigation reduced from 4 to 8 hours to about 1 hour' },
     { title: 'Batch deviation to release', summary: 'Build the investigation pack while release continues.', pattern: 'A deviation meets batch, equipment and line history.', decision: 'Deviation class and release path.', action: 'Draft the investigation and corrective action.', gate: 'Approve release', owner: 'Qualified person', value: '10 to 20 hours saved per deviation' },
-    { title: 'Adverse event signal', summary: 'Connect the same product and reaction across channels.', pattern: 'Matching signals appear across intake channels.', decision: 'Seriousness and expedited status.', action: 'Create, prefill and route the case.', gate: 'Approve submission', owner: 'Safety physician', value: '30 to 50 percent less intake effort' }
+    { title: 'Adverse event signal', summary: 'Connect the same product and reaction across channels.', pattern: 'Matching signals appear across intake channels.', decision: 'Seriousness and expedited status.', action: 'Create, prefill and route the case.', gate: 'Approve submission', owner: 'Safety physician', value: '30 to 50 percent less intake and triage effort' }
   ]
 };
 
-const industryScreen = document.querySelector('#industry-screen');
-const cardsScreen = document.querySelector('#cards-screen');
-const industryGrid = document.querySelector('#industry-grid');
-const caseGrid = document.querySelector('#case-grid');
-const cardsEyebrow = document.querySelector('#cards-eyebrow');
-const cardsTitle = document.querySelector('#cards-title');
-const backButton = document.querySelector('#back-button');
-const homeButton = document.querySelector('#home-button');
-const dialog = document.querySelector('#case-dialog');
-const dialogContent = document.querySelector('#dialog-content');
+const objections = [
+  { title: 'We already have an AI platform. Why another layer?', answer: 'Do not add another place to build agents. Connect the agents and systems you already have through business events, shared context and one audit trail.', ask: 'What tells your agent to start: a schedule, a person or the business change itself?' },
+  { title: 'What does it cost end to end?', answer: 'Keep platform and model costs separate. Use deterministic logic where possible, minimize context and measure cost per completed task.', ask: 'What is your cost per completed task today, and who can see it?' },
+  { title: 'Our data and events are not ready.', answer: 'Start with one process, two systems and one existing event stream. This is a focused operational pilot, not a data-platform program.', ask: 'Which process already publishes events today?' },
+  { title: 'Will it pass security and governance?', answer: 'Carry identity through the workflow, scope access with broker controls and require a human gate for consequential actions.', ask: 'Who signs off an agent for production, and what evidence do they need?' },
+  { title: 'Show me the use case that pays.', answer: 'Pick one exception the team handles every week. Measure reaction time, accuracy, effort and the cost of one miss.', ask: 'Which exception keeps a team busy every Monday?' }
+];
 
-function showIndustries() {
-  cardsScreen.hidden = true;
-  industryScreen.hidden = false;
+const homeScreen = document.querySelector('#home-screen');
+const detailScreen = document.querySelector('#detail-screen');
+const industryGrid = document.querySelector('#industry-grid');
+const detailList = document.querySelector('#detail-list');
+const detailEyebrow = document.querySelector('#detail-eyebrow');
+const detailTitle = document.querySelector('#detail-title');
+const backButton = document.querySelector('#back-button');
+
+function showHome() {
+  detailScreen.hidden = true;
+  homeScreen.hidden = false;
   backButton.hidden = true;
   document.title = 'Solace Agent Mesh Sales Cards';
   window.scrollTo(0, 0);
 }
 
+function renderCase(item, index) {
+  return `
+    <article class="full-card">
+      <header class="full-card-head">
+        <span class="card-number">0${index + 1}</span>
+        <h2>${item.title}</h2>
+        <span class="value-pill">${item.value}</span>
+      </header>
+      <div class="card-sequence">
+        <div class="card-block"><span>Pattern</span><p>${item.pattern}</p></div>
+        <div class="card-block"><span>Decision</span><p>${item.decision}</p></div>
+        <div class="card-block"><span>Action</span><p>${item.action}</p></div>
+      </div>
+      <footer class="card-footer">
+        <span class="card-summary">${item.summary}</span>
+        <div class="gate-block"><span>Human gate</span><p>${item.gate}</p><small>${item.owner}</small></div>
+      </footer>
+    </article>`;
+}
+
 function showIndustry(id) {
   const industry = industries.find(item => item.id === id);
   if (!industry) return;
-  cardsEyebrow.textContent = industry.name;
-  cardsTitle.textContent = 'Three agent patterns';
-  caseGrid.innerHTML = cases[id].map((item, index) => `
-    <button class="case-card" type="button" data-industry="${id}" data-index="${index}">
-      <span class="case-number">0${index + 1}</span>
-      <h2>${item.title}</h2>
-      <p>${item.summary}</p>
-      <span class="case-tags"><span class="gate-tag">${item.gate}</span><span class="value-tag">${item.value}</span></span>
-      <span class="open-label">Open card <span aria-hidden="true">→</span></span>
-    </button>`).join('');
-  industryScreen.hidden = true;
-  cardsScreen.hidden = false;
+  detailEyebrow.textContent = 'Industry cards';
+  detailTitle.textContent = industry.name;
+  detailList.innerHTML = cases[id].map(renderCase).join('');
+  homeScreen.hidden = true;
+  detailScreen.hidden = false;
   backButton.hidden = false;
   document.title = `${industry.name} | Solace Agent Mesh`;
   window.scrollTo(0, 0);
 }
 
-function openCase(industryId, index) {
-  const industry = industries.find(item => item.id === industryId);
-  const item = cases[industryId]?.[index];
-  if (!industry || !item) return;
-  dialogContent.innerHTML = `
-    <p class="dialog-industry">${industry.name}</p>
-    <h2 id="dialog-title">${item.title}</h2>
-    <div class="dialog-grid">
-      <div class="dialog-item"><span>Pattern</span><p>${item.pattern}</p></div>
-      <div class="dialog-item"><span>Decision</span><p>${item.decision}</p></div>
-      <div class="dialog-item"><span>Action</span><p>${item.action}</p></div>
-      <div class="dialog-item gate"><span>Human gate</span><p><strong>${item.gate}</strong><br>${item.owner}</p></div>
-      <div class="dialog-item"><span>Value</span><p>${item.value}</p></div>
-    </div>`;
-  dialog.showModal();
-  document.body.style.overflow = 'hidden';
+function showObjections() {
+  detailEyebrow.textContent = 'Sales responses';
+  detailTitle.textContent = 'Top 5 objections';
+  detailList.innerHTML = objections.map((item, index) => `
+    <article class="objection-card">
+      <span class="objection-number">0${index + 1}</span>
+      <div>
+        <h2>${item.title}</h2>
+        <p class="objection-answer">${item.answer}</p>
+        <p class="objection-question"><strong>Ask</strong><br>${item.ask}</p>
+      </div>
+    </article>`).join('');
+  homeScreen.hidden = true;
+  detailScreen.hidden = false;
+  backButton.hidden = false;
+  document.title = 'Top 5 Objections | Solace Agent Mesh';
+  window.scrollTo(0, 0);
 }
 
-industryGrid.innerHTML = industries.map((industry, index) => `
+industryGrid.innerHTML = industries.map(industry => `
   <button class="industry-card" type="button" data-industry="${industry.id}">
     <span class="industry-icon" aria-hidden="true">${industry.icon}</span>
     <h2>${industry.name}</h2>
-    <p>3 agent patterns</p>
     <span class="card-arrow" aria-hidden="true">→</span>
   </button>`).join('');
 
@@ -110,13 +128,6 @@ industryGrid.addEventListener('click', event => {
   if (card) showIndustry(card.dataset.industry);
 });
 
-caseGrid.addEventListener('click', event => {
-  const card = event.target.closest('.case-card');
-  if (card) openCase(card.dataset.industry, Number(card.dataset.index));
-});
-
-backButton.addEventListener('click', showIndustries);
-homeButton.addEventListener('click', showIndustries);
-document.querySelector('.dialog-close').addEventListener('click', () => dialog.close());
-dialog.addEventListener('click', event => { if (event.target === dialog) dialog.close(); });
-dialog.addEventListener('close', () => { document.body.style.overflow = ''; });
+document.querySelector('#objections-button').addEventListener('click', showObjections);
+document.querySelector('#home-button').addEventListener('click', showHome);
+backButton.addEventListener('click', showHome);
