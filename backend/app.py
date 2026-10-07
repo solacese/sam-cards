@@ -109,7 +109,7 @@ def validate_report(raw, requested_company):
             cleaned.append(result)
         if len({item['title'].casefold() for item in cleaned}) != 3 or len(used)<3:
             raise ValueError('duplicate cases or insufficient sources')
-        return {'company':text_field(report.get('company'),160),'requested_company':requested_company,'overview':text_field(report.get('overview'),600),'cases':cleaned,'sources':[item for item in sources if item['id'] in used],'capability_sources':CAPABILITY_SOURCES,'generated_at':datetime.now(timezone.utc).isoformat(),'model':'Perplexity Sonar Pro via SAP AI Core','version':VERSION,'cached':False}
+        return {'company':text_field(report.get('company'),160),'requested_company':requested_company,'overview':text_field(report.get('overview'),600),'cases':cleaned,'sources':[item for item in sources if item['id'] in used],'capability_sources':CAPABILITY_SOURCES,'generated_at':datetime.now(timezone.utc).isoformat(),'model':'Perplexity Sonar Pro','version':VERSION,'cached':False}
     except ResearchError:
         raise
     except (ValueError, TypeError, KeyError, IndexError, AttributeError):
@@ -133,7 +133,7 @@ def request_json(url, deadline, body=None, headers=None, form=False):
     except HTTPError as error:
         print(json.dumps({'event':'provider_error','status':error.code}))
         if error.code==429:
-            raise ResearchError(503,'AI Core is busy. Please try again shortly.') from None
+            raise ResearchError(503,'Perplexity is busy. Please try again shortly.') from None
         raise ResearchError(502,'The research service is temporarily unavailable. Please try again.') from None
     except (TimeoutError, socket.timeout):
         raise ResearchError(504,'Research reached the 20-second limit. Please try again.') from None
@@ -213,6 +213,7 @@ def handler(event, context):
             consume(f'budget:{datetime.now(timezone.utc).date()}',int(os.environ.get('DAILY_LIMIT','100')),now+172800)
             report=research(company,start+DEADLINE_SECONDS)
             table().put_item(Item={'pk':cache_key,'expires_at':now+21600,'report':json.dumps(report,ensure_ascii=False)})
+        report['model']='Perplexity Sonar Pro'
         report['elapsed_seconds']=round(time.monotonic()-start,1)
         print(json.dumps({'event':'research_complete','cached':report['cached'],'elapsed_seconds':report['elapsed_seconds']}))
         return reply(200,report,allowed)

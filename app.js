@@ -33,7 +33,7 @@ function section(title, text) {
 function renderReport(report) {
   const sourceMap = new Map(report.sources.map(item => [item.id,item]));
   document.querySelector('#results-title').textContent = `3 opportunities for ${report.company}`;
-  document.querySelector('#results-date').textContent = `Researched ${displayDate(report.generated_at)} · ${report.cached ? 'Recent saved research' : `${report.elapsed_seconds}s research`} · Perplexity via AI Core`;
+  document.querySelector('#results-date').textContent = `Researched ${displayDate(report.generated_at)} · ${report.cached ? 'Recent saved research' : `${report.elapsed_seconds}s research`} · Perplexity`;
   document.querySelector('#results-overview').textContent = report.overview;
   document.querySelector('#case-grid').innerHTML = report.cases.map((item,index) => `
     <article class="case-card" aria-labelledby="case-title-${index+1}">
