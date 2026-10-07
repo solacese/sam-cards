@@ -4,52 +4,49 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#ffffff">
-  <meta name="description" content="Solace Agent Mesh sales cheat sheet for six industries and five common objections.">
-  <title>Solace Agent Mesh Sales Cards</title>
+  <meta name="description" content="Explore 18 practical Solace Agent Mesh examples across six industries, with plain-language explanations and questions to start a customer conversation.">
+  <title>Solace Agent Mesh | Conversation cards</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="icon" href="assets/solace-logo.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=4">
-  <script src="app.js?v=4" defer></script>
+  <link rel="stylesheet" href="styles.css?v=8">
+  <script src="app.js?v=8" defer></script>
 </head>
 <body>
+  <a class="skip-link" href="#main-content">Skip to content</a>
   <header class="site-header">
-    <button class="brand" id="home-button" type="button" aria-label="Show all industries">
+    <a class="brand" id="home-button" href="#" aria-label="Solace Agent Mesh — all industries">
       <img src="assets/solace-logo.svg" alt="Solace" width="86" height="22">
       <span>Agent Mesh</span>
-    </button>
-    <p>Sales cheat sheet</p>
-    <button class="back-button" id="back-button" type="button" hidden>
-      <span aria-hidden="true">←</span> Back
-    </button>
+    </a>
+    <a class="back-button" id="back-button" href="#" hidden>
+      <span aria-hidden="true">←</span> All industries
+    </a>
   </header>
 
-  <main>
+  <main id="main-content" tabindex="-1">
     <section class="home-screen" id="home-screen" aria-labelledby="home-title">
       <div class="screen-heading">
-        <p class="eyebrow">Solace Agent Mesh</p>
-        <h1 id="home-title">Choose an industry</h1>
+        <h1 id="home-title" tabindex="-1">Choose an industry</h1>
+        <p class="screen-intro">Practical examples for your next customer conversation.</p>
       </div>
       <div class="industry-grid" id="industry-grid"></div>
-      <button class="objections-link" id="objections-button" type="button">
-        <span class="objections-icon" aria-hidden="true">?</span>
-        <strong>Top 5 objections</strong>
+      <a class="objections-link" id="objections-button" href="#questions">
+        <span class="objections-icon" aria-hidden="true"><img src="assets/icons/questions.svg" alt="" width="28" height="28"></span>
+        <strong>Common questions</strong>
         <span class="arrow" aria-hidden="true">→</span>
-      </button>
+      </a>
     </section>
 
     <section class="detail-screen" id="detail-screen" aria-labelledby="detail-title" hidden>
       <div class="detail-heading">
-        <p class="eyebrow" id="detail-eyebrow">Industry</p>
-        <h1 id="detail-title">Industry</h1>
+        <h1 id="detail-title" tabindex="-1">Industry</h1>
       </div>
       <div class="detail-list" id="detail-list"></div>
     </section>
+    <noscript><p class="noscript-note">Enable JavaScript to browse the conversation cards.</p></noscript>
   </main>
 
-  <footer>
-    <p>Pattern → Decision → Action → Human gate</p>
-  </footer>
 </body>
 </html>
