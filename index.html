@@ -4,49 +4,40 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#ffffff">
-  <meta name="description" content="Explore 18 practical Solace Agent Mesh examples across six industries, with plain-language explanations and questions to start a customer conversation.">
-  <title>Solace Agent Mesh | Conversation cards</title>
+  <meta name="description" content="Find three event-triggered Solace Agent Mesh opportunities for your customer, grounded in recent company news.">
+  <title>What can Agent Mesh do for your customer?</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="icon" href="assets/solace-logo.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=8">
-  <script src="app.js?v=8" defer></script>
+  <link rel="stylesheet" href="styles.css?v=9">
+  <script src="config.js?v=9" defer></script>
+  <script src="assets/vendor/jspdf.umd.min.js" defer></script>
+  <script src="pdf-export.js?v=9" defer></script>
+  <script src="app.js?v=9" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main-content">Skip to content</a>
-  <header class="site-header">
-    <a class="brand" id="home-button" href="#" aria-label="Solace Agent Mesh — all industries">
-      <img src="assets/solace-logo.svg" alt="Solace" width="86" height="22">
-      <span>Agent Mesh</span>
-    </a>
-    <a class="back-button" id="back-button" href="#" hidden>
-      <span aria-hidden="true">←</span> All industries
-    </a>
-  </header>
-
+  <header class="site-header"><a class="brand" href="./" aria-label="Agent Mesh company research"><img src="assets/solace-logo.svg" alt="Solace" width="86" height="22"><span>Agent Mesh</span></a></header>
   <main id="main-content" tabindex="-1">
-    <section class="home-screen" id="home-screen" aria-labelledby="home-title">
-      <div class="screen-heading">
-        <h1 id="home-title" tabindex="-1">Choose an industry</h1>
-        <p class="screen-intro">Practical examples for your next customer conversation.</p>
-      </div>
-      <div class="industry-grid" id="industry-grid"></div>
-      <a class="objections-link" id="objections-button" href="#questions">
-        <span class="objections-icon" aria-hidden="true"><img src="assets/icons/questions.svg" alt="" width="28" height="28"></span>
-        <strong>Common questions</strong>
-        <span class="arrow" aria-hidden="true">→</span>
-      </a>
+    <section class="prompt-screen" aria-labelledby="prompt-title">
+      <h1 id="prompt-title">What can Agent Mesh do for</h1>
+      <form id="research-form">
+        <label class="sr-only" for="company">Company name</label>
+        <div class="prompt-box"><input id="company" name="company" type="text" placeholder="Enter a company name" required minlength="2" maxlength="100" autocomplete="organization" spellcheck="false"><span aria-hidden="true">?</span><button id="research-button" type="submit">Find 3 cases <span aria-hidden="true">→</span></button></div>
+      </form>
+      <p class="prompt-description">Recent news. Three practical ideas. Two or three agents per case.</p>
+      <div class="research-status" id="research-status" role="status" aria-live="polite" hidden><span class="spinner" aria-hidden="true"></span><span id="status-text">Researching recent news…</span><span class="timer" id="timer" aria-hidden="true">20s</span></div>
+      <p class="error-message" id="error-message" role="alert" hidden></p>
     </section>
-
-    <section class="detail-screen" id="detail-screen" aria-labelledby="detail-title" hidden>
-      <div class="detail-heading">
-        <h1 id="detail-title" tabindex="-1">Industry</h1>
-      </div>
-      <div class="detail-list" id="detail-list"></div>
+    <section class="results" id="results" aria-labelledby="results-title" hidden>
+      <header class="results-header"><div><h2 id="results-title" tabindex="-1"></h2><p class="results-date" id="results-date"></p></div><button class="export-button" id="export-button" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M4 17v4h16v-4"/></svg>Export PDF</button></header>
+      <p class="results-overview" id="results-overview"></p>
+      <div class="case-grid" id="case-grid"></div>
+      <p class="results-note">Proposed workflows based on public news. Validate integrations, approvals and business value with the customer. Improvement means measuring outcomes and approving changes—not agents rewriting themselves.</p>
+      <div class="sources-section"><h2>Sources</h2><ol id="sources-list"></ol><p class="capability-note">Agent Mesh fit: <a href="https://docs.solace.com/Agent-Mesh/Framework/building/entrypoints/event-mesh/index.htm" target="_blank" rel="noopener noreferrer">event entrypoints</a> and <a href="https://docs.solace.com/Agent-Mesh/Framework/concepts/event-driven-mesh.htm" target="_blank" rel="noopener noreferrer">the event fabric</a>. LangGraph and Azure can support these patterns with additional event and integration services.</p></div>
     </section>
-    <noscript><p class="noscript-note">Enable JavaScript to browse the conversation cards.</p></noscript>
+    <noscript><p class="error-message">Enable JavaScript to research a company.</p></noscript>
   </main>
-
 </body>
 </html>

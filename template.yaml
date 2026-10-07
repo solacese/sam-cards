@@ -1,0 +1,79 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Public company-news research for the SAM Cards GitHub Pages app
+Parameters:
+  SecretArn:
+    Type: String
+  AllowedOrigin:
+    Type: String
+    Default: https://solacese.github.io
+Resources:
+  Reports:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: expires_at
+        Enabled: true
+      SSESpecification:
+        SSEEnabled: true
+  Api:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: '$default'
+      CorsConfiguration:
+        AllowOrigins:
+          - !Ref AllowedOrigin
+        AllowMethods: [POST, OPTIONS]
+        AllowHeaders: [Content-Type]
+        MaxAge: 3600
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: 3
+        ThrottlingRateLimit: 1
+  Research:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend/
+      Handler: app.handler
+      Runtime: python3.13
+      Timeout: 25
+      MemorySize: 256
+      ReservedConcurrentExecutions: 3
+      Environment:
+        Variables:
+          SECRET_ARN: !Ref SecretArn
+          TABLE_NAME: !Ref Reports
+          ALLOWED_ORIGIN: !Ref AllowedOrigin
+          DAILY_LIMIT: '100'
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref Reports
+        - Statement:
+            - Effect: Allow
+              Action: secretsmanager:GetSecretValue
+              Resource: !Ref SecretArn
+      Events:
+        Research:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref Api
+            Path: /research
+            Method: POST
+  Logs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${Research}'
+      RetentionInDays: 14
+Outputs:
+  ApiUrl:
+    Value: !Sub 'https://${Api}.execute-api.${AWS::Region}.${AWS::URLSuffix}/research'
+  FunctionName:
+    Value: !Ref Research
+  TableName:
+    Value: !Ref Reports

@@ -1,0 +1,10 @@
+# Keep infrastructure and development files out of the published Pages site.
+exclude:
+  - backend
+  - scripts
+  - tests
+  - template.yaml
+  - README.md
+  - output
+  - tmp
+  - SAM-Pattern-Agents-Playbook.md
