@@ -98,3 +98,46 @@ h1 { margin: 0 0 24px; font-size: var(--text-page); font-weight: 700; line-heigh
 .case-card:nth-child(3) { background: #fff4e7; border-color: #806d54; }
 .case-card:nth-child(3) .case-values, .case-card:nth-child(3) .case-question { background: #f6e7d4; }
 .case-card:nth-child(2) .case-values, .case-card:nth-child(2) .case-question { background: #dce9f4; }
+
+/* Optional brief: native disclosures, labelled checkbox groups and custom entries. */
+.tailor-panel { margin-top: 16px; border: 2px solid var(--border); border-radius: 10px; background: #f5f9f6; }
+.tailor-panel > summary { padding: 12px 16px; cursor: pointer; font-size: var(--text-label); font-weight: 700; }
+.optional-label { margin-left: 8px; font-weight: 400; }
+#tailoring-fields { min-width: 0; margin: 0; padding: 0 16px 14px; border: 0; }
+.tailor-help { margin: 0 0 12px; font-size: var(--text-label); }
+.tailor-grid + .tailor-help { margin: 14px 0 0; }
+.tailor-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; }
+.tailor-field { min-width: 0; }
+.tailor-field > label, .field-label { display: block; margin-bottom: 6px; font-size: var(--text-label); font-weight: 700; }
+.tailor-field > input, .multi-select > summary { width: 100%; min-height: 46px; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: 7px; background: white; color: var(--navy); font-size: var(--text-label); }
+.tailor-field > input::placeholder, .custom-entry input::placeholder { color: #425d6d; opacity: 1; }
+.multi-select { position: relative; }
+.multi-select > summary { cursor: pointer; }
+.multi-select[open] { z-index: 5; }
+.multi-popup { position: absolute; top: calc(100% + 4px); left: 0; width: 100%; padding: 8px; border: 2px solid var(--border); border-radius: 8px; background: white; box-shadow: 0 8px 20px #102a3c22; }
+.multi-checklist { max-height: 230px; overflow-y: auto; overscroll-behavior: contain; }
+.multi-option { display: flex; align-items: center; gap: 9px; min-height: 42px; padding: 8px; cursor: pointer; font-size: var(--text-label); overflow-wrap: anywhere; }
+.multi-option:hover { background: var(--mint); }
+.multi-option input { width: 18px; height: 18px; flex-shrink: 0; accent-color: var(--green); }
+.custom-entry { display: flex; gap: 6px; margin-top: 8px; }
+.custom-entry input { min-width: 0; width: 100%; padding: 10px 8px; border: 1.5px solid var(--border); border-radius: 6px; font-size: var(--text-label); }
+.custom-entry button { min-height: 44px; padding: 8px 12px; border: 0; border-radius: 6px; background: var(--navy); color: white; font-size: var(--text-label); }
+.selection-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0; padding: 0; list-style: none; }
+.selection-chips:empty { display: none; }
+.selection-chips li { max-width: 100%; }
+.selection-chips button { padding: 6px 9px; min-height: 36px; border: 1px solid var(--border); border-radius: 6px; background: #dcefe3; color: var(--navy); font-size: var(--text-label); overflow-wrap: anywhere; text-align: left; }
+.tailoring-feedback { margin: 8px 0 0; font-size: var(--text-label); }
+.tailoring-feedback:empty { display: none; }
+.criteria-summary { margin: 0 0 22px; padding: 12px 16px; border: 1.5px solid var(--border); border-radius: 8px; background: #f5f9f6; font-size: var(--text-label); }
+.criteria-summary h3 { margin: 0 0 8px; font-size: var(--text-label); }
+.criteria-summary dl { display: flex; flex-wrap: wrap; gap: 6px 20px; margin: 0; }
+.criteria-summary dl div { display: flex; flex-wrap: wrap; gap: 4px; min-width: 0; }
+.criteria-summary dt { font-weight: 700; }
+.criteria-summary dd { margin: 0; overflow-wrap: anywhere; }
+.criteria-summary p { margin: 8px 0 0; }
+.case-fit { padding: 14px 18px; border-top: 1px solid var(--border); font-size: var(--text-label); }
+.case-fit h4 { margin: 0 0 8px; color: var(--green); font-size: var(--text-label); }
+.case-fit p { margin: 8px 0 0; overflow-wrap: anywhere; }
+.system-role-list { margin: 0; padding-left: 20px; }
+.system-role-list li + li { margin-top: 8px; }
+@media (max-width:560px) { .tailor-grid { grid-template-columns: 1fr; } .multi-popup { position: static; margin-top: 4px; box-shadow: none; } }

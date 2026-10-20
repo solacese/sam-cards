@@ -10,11 +10,12 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="icon" href="assets/solace-logo.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=9">
+  <link rel="stylesheet" href="styles.css?v=11">
   <script src="config.js?v=9" defer></script>
   <script src="assets/vendor/jspdf.umd.min.js" defer></script>
-  <script src="pdf-export.js?v=9" defer></script>
-  <script src="app.js?v=10" defer></script>
+  <script src="tailoring.js?v=11" defer></script>
+  <script src="pdf-export.js?v=11" defer></script>
+  <script src="app.js?v=11" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main-content">Skip to content</a>
@@ -25,6 +26,21 @@
       <form id="research-form">
         <label class="sr-only" for="company">Company name</label>
         <div class="prompt-box"><input id="company" name="company" type="text" placeholder="Enter a company name" required minlength="2" maxlength="100" autocomplete="organization" spellcheck="false"><span aria-hidden="true">?</span><button id="research-button" type="submit">Find 3 cases <span aria-hidden="true">→</span></button></div>
+        <details class="tailor-panel">
+          <summary>Tailor your use cases <span class="optional-label">Optional</span></summary>
+          <fieldset id="tailoring-fields">
+            <legend class="sr-only">Optional use case criteria</legend>
+            <p class="tailor-help">Focus on your priorities. Leave any field empty.</p>
+            <div class="tailor-grid">
+              <div class="tailor-field" data-multi="departments" data-label="Target department"></div>
+              <div class="tailor-field"><label for="topic">Topic</label><input id="topic" name="topic" type="text" maxlength="200" placeholder="E.g. invoices, supplier onboarding, legal work."></div>
+              <div class="tailor-field" data-multi="outcomes" data-label="Desired business outcome"></div>
+              <div class="tailor-field" data-multi="systems" data-label="Systems involved"></div>
+            </div>
+            <p class="tailor-help">Named systems are your context, not verified company installations or available integrations.</p>
+            <p id="tailoring-feedback" class="tailoring-feedback" role="status" aria-live="polite"></p>
+          </fieldset>
+        </details>
       </form>
       <p class="prompt-description">Recent news. Three practical ideas. Two or three agents per case.</p>
       <div class="research-status" id="research-status" role="status" aria-live="polite" hidden><span class="spinner" aria-hidden="true"></span><span id="status-text">Researching recent news…</span><span class="timer" id="timer" aria-hidden="true">20s</span></div>
@@ -33,6 +49,7 @@
     <section class="results" id="results" aria-labelledby="results-title" hidden>
       <header class="results-header"><div><h2 id="results-title" tabindex="-1"></h2><p class="results-date" id="results-date"></p></div><button class="export-button" id="export-button" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M4 17v4h16v-4"/></svg>Export PDF</button></header>
       <p class="results-overview" id="results-overview"></p>
+      <aside id="criteria-summary" class="criteria-summary" aria-label="Selected tailoring criteria" hidden></aside>
       <div class="case-grid" id="case-grid"></div>
       <p class="results-note">Proposed workflows based on public news. Validate integrations, approvals and business value with the customer. Improvement means measuring outcomes and approving changes—not agents rewriting themselves.</p>
       <div class="sources-section"><h2>Sources</h2><ol id="sources-list"></ol><p class="capability-note">Agent Mesh fit: <a href="https://docs.solace.com/Agent-Mesh/Framework/building/entrypoints/event-mesh/index.htm" target="_blank" rel="noopener noreferrer">event entrypoints</a> and <a href="https://docs.solace.com/Agent-Mesh/Framework/concepts/event-driven-mesh.htm" target="_blank" rel="noopener noreferrer">the event fabric</a>. LangGraph and Azure can support these patterns with additional event and integration services.</p></div>

@@ -9,3 +9,5 @@ output/
 tmp/
 research-config.private.json
 SAM-Pattern-Agents-Playbook.md
+
+.playwright-mcp/

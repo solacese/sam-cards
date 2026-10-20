@@ -22,7 +22,7 @@ class Handler(SimpleHTTPRequestHandler):
         if self.path!='/api/research':
             self.send_error(404);return
         length=int(self.headers.get('Content-Length','0'))
-        if not 0<length<=2000:
+        if not 0<length<=12000:
             self.send_error(400);return
         body=self.rfile.read(length)
         try:

@@ -10,6 +10,7 @@
     let y = 0;
     const navy = [16,42,60], green = [0,84,62];
     const date = new Date(report.generated_at).toISOString().slice(0,10);
+    const tailored = Boolean(report.tailoring && Object.keys(report.tailoring).length);
     function header() {
       doc.setTextColor(...navy); doc.setFont('helvetica','bold'); doc.setFontSize(12);
       doc.text('SOLACE  |  Agent Mesh',margin,17);
@@ -25,29 +26,40 @@
         if (y>bottom-8) nextPage();
         doc.setFont('helvetica',bold?'bold':'normal'); doc.setFontSize(size); doc.text(line,margin,y); y+=size*.43;
       }
-      y+=3;
+      y+=tailored?2:3;
     }
     function section(label,text) {
       doc.setFont('helvetica','normal');doc.setFontSize(11);
       const lines=doc.splitTextToSize(plain(text),width);
-      if (y+7+lines.length*4.73>bottom) nextPage();
-      doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(...green);doc.text(label.toUpperCase(),margin,y);y+=5;
+      if (y+(tailored?6:7)+lines.length*4.73>bottom) nextPage();
+      doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(...green);doc.text(label.toUpperCase(),margin,y);y+=tailored?4:5;
       paragraph(text);
     }
     report.cases.forEach((item,index)=> {
       if (index>0) doc.addPage();
       header();
       paragraph(`${index+1}. ${item.title}`,17,true);
+      if (index===0 && tailored) {
+        const labels={departments:'Departments',topic:'Topic',outcomes:'Outcomes',systems:'Systems'};
+        paragraph('Brief (user-provided): '+Object.entries(labels).filter(([key])=>report.tailoring[key]?.length).map(([key,label])=>`${label}: ${Array.isArray(report.tailoring[key])?report.tailoring[key].join(', '):report.tailoring[key]}`).join(' | '),9);
+      }
       paragraph(`${item.news.date} - ${item.news.headline}`,10);
       paragraph(`News sources: ${item.news.source_ids.map(id=>`[${id}]`).join(', ')}`,9);
-      section('Reduce risk',item.risk);
-      section('Grow or protect revenue',item.revenue);
+      if (item.fit?.departments.length) section('Proposed department fit',item.fit.departments.map(entry=>`${entry.name}: ${entry.role}`).join('\n'));
+      if (item.fit?.topic) section('Fit to your topic',item.fit.topic);
+      if (item.fit?.outcomes.length) item.fit.outcomes.forEach(outcome=>section(outcome.name,outcome.impact));
+      else {
+        section('Reduce risk',item.risk);
+        section('Grow or protect revenue',item.revenue);
+      }
       section('When it starts',item.trigger);
       section(`${item.agents.length} focused agents`,item.agents.map(agent=>`${agent.name}: ${agent.role}`).join('\n'));
       section('What they do',item.action);
       section('Why Agent Mesh fits',item.why_mesh);
       section('Human approval',item.human);
       section('How it improves',item.learning);
+      if (item.fit?.systems.length) section('Proposed system roles - unverified',item.fit.systems.map(system=>`${system.name}: ${system.role}`).join('\n'));
+      if (item.fit?.assumptions) section('Assumptions to validate',item.fit.assumptions);
       section('Measure in a pilot',item.metric);
       section('Ask the customer',item.question);
     });

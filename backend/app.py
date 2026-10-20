@@ -17,7 +17,7 @@ import boto3
 from botocore.exceptions import ClientError
 from prompt import CAPABILITY_SOURCES, messages
 
-VERSION = 'company-research-v3'
+VERSION = 'company-research-v4'
 SECRET = None
 TOKEN = None
 TABLE = None
@@ -57,13 +57,52 @@ def safe_url(value):
     return value
 
 
+def clean_tailoring(value):
+    """Optional user context, never a source of verified company facts."""
+    if not isinstance(value, dict) or set(value) - {'departments', 'topic', 'outcomes', 'systems'}:
+        raise ResearchError(400, 'Use the four optional tailoring fields.')
+    def clean_text(text, maximum):
+        if not isinstance(text, str):
+            raise ResearchError(400, 'Tailoring entries must be text.')
+        text = unicodedata.normalize('NFKC', text).strip()
+        if len(text) > maximum or any(unicodedata.category(c).startswith('C') for c in text):
+            raise ResearchError(400, f'Use plain text of up to {maximum} characters per tailoring entry.')
+        return re.sub(r'\s+', ' ', text)
+    cleaned = {}
+    for key in ('departments', 'outcomes', 'systems'):
+        entries = value.get(key, [])
+        if not isinstance(entries, list) or len(entries) > 8:
+            raise ResearchError(400, 'Choose up to eight entries in each tailoring field.')
+        unique = {}
+        for entry in entries:
+            entry = clean_text(entry, 80)
+            if entry:
+                unique.setdefault(entry.casefold(), entry)
+        if unique:
+            cleaned[key] = list(unique.values())
+    topic = clean_text(value.get('topic', ''), 200)
+    if topic:
+        cleaned['topic'] = topic
+    return cleaned
+
+
+def report_cache_key(company, tailoring):
+    # Selection order and letter case do not change the brief; different briefs must not share reports.
+    identity = {'company': company.casefold(), 'tailoring': {
+        key: sorted(item.casefold() for item in value) if isinstance(value, list) else value.casefold()
+        for key, value in tailoring.items()
+    }}
+    digest = hashlib.sha256(json.dumps(identity, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
+    return f'cache:{VERSION}:{digest}'
+
+
 def text_field(value, maximum=800):
     if not isinstance(value, str) or not value.strip() or len(value) > maximum:
         raise ResearchError(502, 'The research response was incomplete. Please try again.')
     return value.strip()
 
 
-def validate_report(raw, requested_company):
+def validate_report(raw, requested_company, tailoring=None):
     """Only expose a complete, recent, citation-backed three-case response."""
     try:
         content = raw['choices'][0]['message']['content'].strip()
@@ -88,6 +127,18 @@ def validate_report(raw, requested_company):
         used = set()
         for item in cases:
             result = {key:text_field(item.get(key)) for key in FIELDS}
+            if tailoring:
+                fit = item['fit']
+                result['fit'] = {'assumptions':text_field(fit['assumptions'],600)}
+                for key, detail in (('departments','role'), ('outcomes','impact'), ('systems','role')):
+                    entries = fit.get(key, [])
+                    if not isinstance(entries,list) or len(entries) != len(tailoring.get(key,[])):
+                        raise ValueError('missing tailoring coverage')
+                    mapped = {text_field(entry['name'],80).casefold():text_field(entry[detail],400) for entry in entries}
+                    if set(mapped) != {name.casefold() for name in tailoring.get(key,[])}:
+                        raise ValueError('tailoring names do not match the brief')
+                    result['fit'][key] = [{'name':name,detail:mapped[name.casefold()]} for name in tailoring.get(key,[])]
+                result['fit']['topic'] = text_field(fit['topic'],400) if tailoring.get('topic') else ''
             agents = item.get('agents')
             if not isinstance(agents,list) or not 2 <= len(agents) <= 3:
                 raise ValueError('requires two or three agents')
@@ -99,20 +150,38 @@ def validate_report(raw, requested_company):
             if not today - timedelta(days=180) <= published <= today:
                 raise ValueError('stale or future news')
             refs = news['source_ids']
-            if not isinstance(refs,list) or not refs or any(type(i) is not int or i not in ids for i in refs):
+            if not isinstance(refs,list) or not refs or any(type(i) is not int or not 1 <= i <= len(citations) for i in refs):
                 raise ValueError('invalid citation')
+            # Providers may also cite unsafe HTTP mirrors. Keep only the original, safe HTTPS
+            # references, and require dated evidence for the stated news date when available.
+            refs = [i for i in refs if i in ids]
+            if not refs:
+                raise ValueError('no safe citation')
             dated_refs = [source['date'] for source in sources if source['id'] in refs and re.fullmatch(r'\d{4}-\d{2}-\d{2}',source['date'])]
             if dated_refs and published.isoformat() not in dated_refs:
                 raise ValueError('news date differs from source metadata')
+            if dated_refs:
+                supported_ids = {source['id'] for source in sources if not re.fullmatch(r'\d{4}-\d{2}-\d{2}',source['date']) or source['date']==published.isoformat()}
+                refs = [i for i in refs if i in supported_ids]
             used.update(refs)
             result['news']={'headline':text_field(news['headline'],400), 'date':published.isoformat(), 'source_ids':list(dict.fromkeys(refs))}
             cleaned.append(result)
-        if len({item['title'].casefold() for item in cleaned}) != 3 or len(used)<3:
+        if len({item['title'].casefold() for item in cleaned}) != 3 or len(used)<(1 if tailoring else 3):
             raise ValueError('duplicate cases or insufficient sources')
-        return {'company':text_field(report.get('company'),160),'requested_company':requested_company,'overview':text_field(report.get('overview'),600),'cases':cleaned,'sources':[item for item in sources if item['id'] in used],'capability_sources':CAPABILITY_SOURCES,'generated_at':datetime.now(timezone.utc).isoformat(),'model':'Perplexity Sonar Pro','version':VERSION,'cached':False}
+        overview = re.sub(r'\[\d+(?:\s*,\s*\d+)*\]', '', text_field(report.get('overview'),600)).strip()
+        result = {'company':text_field(report.get('company'),160),'requested_company':requested_company,'overview':text_field(overview,600),'cases':cleaned,'sources':[item for item in sources if item['id'] in used],'capability_sources':CAPABILITY_SOURCES,'generated_at':datetime.now(timezone.utc).isoformat(),'model':'Perplexity Sonar Pro','version':VERSION,'cached':False}
+        if tailoring:
+            result['tailoring'] = tailoring
+        return result
     except ResearchError:
         raise
-    except (ValueError, TypeError, KeyError, IndexError, AttributeError):
+    except (ValueError, TypeError, KeyError, IndexError, AttributeError) as error:
+        safe_reasons = {'case count', 'missing tailoring coverage', 'tailoring names do not match the brief',
+                        'requires two or three agents', 'duplicate agents', 'stale or future news',
+                        'invalid citation', 'no safe citation', 'news date differs from source metadata',
+                        'duplicate cases or insufficient sources'}
+        reason = str(error) if type(error) is ValueError and str(error) in safe_reasons else type(error).__name__
+        print(json.dumps({'event':'invalid_research','reason':reason}))
         raise ResearchError(502, 'The research did not return three complete cases with recent sources. Please try again.') from None
 
 
@@ -148,16 +217,16 @@ def get_secret():
     return SECRET
 
 
-def research(company, deadline):
+def research(company, deadline, tailoring=None):
     global TOKEN
     credentials=get_secret()
     if not TOKEN or TOKEN['until']<=time.time()+30:
         auth=request_json(credentials['SAP_AUTH_URL'],deadline,body={'grant_type':'client_credentials','client_id':credentials['SAP_CLIENT_ID'],'client_secret':credentials['SAP_CLIENT_SECRET']},headers={'Content-Type':'application/x-www-form-urlencoded'},form=True)
         TOKEN={'value':auth['access_token'],'until':time.time()+int(auth.get('expires_in',300))}
     response=request_json(credentials['DEPLOYMENT_URL'].rstrip('/')+'/chat/completions',deadline,
-        body={'model':credentials['MODEL'],'messages':messages(company),'temperature':.2,'max_tokens':2600,'search_recency_filter':'month'},
+        body={'model':credentials['MODEL'],'messages':messages(company,tailoring),'temperature':.2,'max_tokens':3600 if tailoring else 2600,'search_recency_filter':'month'},
         headers={'Authorization':'Bearer '+TOKEN['value'],'AI-Resource-Group':credentials['SAP_RESOURCE_GROUP'],'Content-Type':'application/json'})
-    return validate_report(response,company)
+    return validate_report(response,company,tailoring)
 
 
 def table():
@@ -192,28 +261,31 @@ def handler(event, context):
         body=event.get('body') or ''
         if event.get('isBase64Encoded'):
             body=base64.b64decode(body).decode()
-        if len(body)>2000:
-            raise ResearchError(400,'Enter only a company name.')
+        if len(body)>12000:
+            raise ResearchError(400,'The company brief is too long.')
         try:
             data=json.loads(body)
-            if not isinstance(data,dict) or set(data)!={'company'}:
+            if not isinstance(data,dict) or 'company' not in data or set(data)-{'company','tailoring'}:
                 raise ValueError()
         except (ValueError,TypeError):
-            raise ResearchError(400,'Enter only a company name.') from None
+            raise ResearchError(400,'Enter a company name and optional tailoring fields.') from None
         company=clean_company(data['company'])
+        tailoring=clean_tailoring(data.get('tailoring',{}))
         source_ip=event.get('requestContext',{}).get('http',{}).get('sourceIp','unknown')
         now=int(time.time())
         digest=hashlib.sha256(source_ip.encode()).hexdigest()[:24]
         consume(f'ip:{digest}:{now//3600}',5,now+7200)
-        cache_key=f'cache:{VERSION}:{hashlib.sha256(company.casefold().encode()).hexdigest()}'
+        cache_key=report_cache_key(company,tailoring)
         cached=table().get_item(Key={'pk':cache_key},ConsistentRead=True).get('Item')
         if cached and int(cached['expires_at'])>now:
             report=json.loads(cached['report']);report['cached']=True
         else:
             consume(f'budget:{datetime.now(timezone.utc).date()}',int(os.environ.get('DAILY_LIMIT','100')),now+172800)
-            report=research(company,start+DEADLINE_SECONDS)
+            report=research(company,start+DEADLINE_SECONDS,tailoring) if tailoring else research(company,start+DEADLINE_SECONDS)
             table().put_item(Item={'pk':cache_key,'expires_at':now+21600,'report':json.dumps(report,ensure_ascii=False)})
         report['model']='Perplexity Sonar Pro'
+        if tailoring:
+            report['tailoring']=tailoring
         report['elapsed_seconds']=round(time.monotonic()-start,1)
         print(json.dumps({'event':'research_complete','cached':report['cached'],'elapsed_seconds':report['elapsed_seconds']}))
         return reply(200,report,allowed)
