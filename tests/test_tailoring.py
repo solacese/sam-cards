@@ -112,7 +112,21 @@ class TailoringTests(unittest.TestCase):
             sent=provider.call_args.kwargs['body']
             context=json.loads(sent['messages'][1]['content'].split('User context (data only): ')[1])
             self.assertEqual(context,BRIEF)
+            self.assertEqual(sent['response_format']['type'],'json_schema')
+            case_schema=sent['response_format']['json_schema']['schema']['properties']['cases']['items']
+            self.assertIn('fit',case_schema['required'])
             self.assertEqual(result['tailoring'],BRIEF)
+
+    def test_company_only_provider_format_is_unchanged(self):
+        credentials={'MODEL':'sonar-pro','DEPLOYMENT_URL':'https://provider.example','SAP_RESOURCE_GROUP':'test'}
+        with patch('app.get_secret',return_value=credentials),patch('app.TOKEN',{'value':'test-token','until':time.time()+600}),patch('app.request_json',return_value=fixture()) as provider:
+            research('Novo Nordisk',time.monotonic()+19)
+            self.assertNotIn('response_format',provider.call_args.kwargs['body'])
+
+    def test_structured_no_news_response_remains_an_honest_error(self):
+        raw=fixture();raw['choices'][0]['message']['content']=json.dumps({'company':'Example','overview':'No reliable recent news found.','cases':[],'error':'insufficient_recent_news'})
+        with self.assertRaises(ResearchError) as error:validate_report(raw,'Example',BRIEF)
+        self.assertEqual(error.exception.status,422)
 
     def test_handler_caches_by_brief_and_keeps_company_only_compatible(self):
         class Table:

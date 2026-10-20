@@ -49,4 +49,4 @@ python3 scripts/deploy.py
 
 The helper packages `template.yaml`, deploys the isolated stack and writes its public endpoint into `config.js`. Publish the frontend and updated `config.js` to `main`; GitHub Pages serves main's repository root. `_config.yml` excludes infrastructure and development source from Pages. Private files, outputs and package artifacts are ignored by Git. Keep credential files outside the checkout.
 
-Frontend: `index.html`, `styles.css`, `app.js`, `tailoring.js`, `pdf-export.js`. Research contract: `backend/prompt.py`. Validation, time budget, caching and rate limits: `backend/app.py`. Deployment: `template.yaml`, `scripts/deploy.py`.
+Frontend: `index.html`, `styles.css`, `app.js`, `tailoring.js`, `pdf-export.js`. Research contract: `backend/prompt.py`; tailored responses use the stable JSON schema in `backend/schema.py` with server-side evidence and fit validation. Validation, time budget, caching and rate limits: `backend/app.py`. Deployment: `template.yaml`, `scripts/deploy.py`.

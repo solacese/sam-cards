@@ -16,6 +16,7 @@ from urllib.request import Request, urlopen
 import boto3
 from botocore.exceptions import ClientError
 from prompt import CAPABILITY_SOURCES, messages
+from schema import TAILORED_RESPONSE_FORMAT
 
 VERSION = 'company-research-v4'
 SECRET = None
@@ -223,8 +224,11 @@ def research(company, deadline, tailoring=None):
     if not TOKEN or TOKEN['until']<=time.time()+30:
         auth=request_json(credentials['SAP_AUTH_URL'],deadline,body={'grant_type':'client_credentials','client_id':credentials['SAP_CLIENT_ID'],'client_secret':credentials['SAP_CLIENT_SECRET']},headers={'Content-Type':'application/x-www-form-urlencoded'},form=True)
         TOKEN={'value':auth['access_token'],'until':time.time()+int(auth.get('expires_in',300))}
+    body={'model':credentials['MODEL'],'messages':messages(company,tailoring),'temperature':.2,'max_tokens':3600 if tailoring else 2600,'search_recency_filter':'month'}
+    if tailoring:
+        body['response_format']=TAILORED_RESPONSE_FORMAT
     response=request_json(credentials['DEPLOYMENT_URL'].rstrip('/')+'/chat/completions',deadline,
-        body={'model':credentials['MODEL'],'messages':messages(company,tailoring),'temperature':.2,'max_tokens':3600 if tailoring else 2600,'search_recency_filter':'month'},
+        body=body,
         headers={'Authorization':'Bearer '+TOKEN['value'],'AI-Resource-Group':credentials['SAP_RESOURCE_GROUP'],'Content-Type':'application/json'})
     return validate_report(response,company,tailoring)
 
