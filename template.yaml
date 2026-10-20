@@ -4,6 +4,11 @@ Description: Public company-news research for the SAM Cards GitHub Pages app
 Parameters:
   SecretArn:
     Type: String
+  ExpertSecretArn:
+    Type: String
+  ExpertModel:
+    Type: String
+    Default: gpt-6-astra
   AllowedOrigin:
     Type: String
     Default: https://solacese.github.io
@@ -30,7 +35,7 @@ Resources:
       CorsConfiguration:
         AllowOrigins:
           - !Ref AllowedOrigin
-        AllowMethods: [POST, OPTIONS]
+        AllowMethods: [POST, GET, OPTIONS]
         AllowHeaders: [Content-Type]
         MaxAge: 3600
       DefaultRouteSettings:
@@ -51,6 +56,8 @@ Resources:
           TABLE_NAME: !Ref Reports
           ALLOWED_ORIGIN: !Ref AllowedOrigin
           DAILY_LIMIT: '100'
+          WORKER_NAME: !Ref ExpertWorker
+          EXPERT_MODEL: !Ref ExpertModel
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref Reports
@@ -58,6 +65,9 @@ Resources:
             - Effect: Allow
               Action: secretsmanager:GetSecretValue
               Resource: !Ref SecretArn
+            - Effect: Allow
+              Action: lambda:InvokeFunction
+              Resource: !GetAtt ExpertWorker.Arn
       Events:
         Research:
           Type: HttpApi
@@ -65,6 +75,42 @@ Resources:
             ApiId: !Ref Api
             Path: /research
             Method: POST
+        Status:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref Api
+            Path: /research/{job_id}
+            Method: GET
+  ExpertWorker:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend/
+      Handler: app.worker
+      Runtime: python3.13
+      Timeout: 180
+      MemorySize: 256
+      ReservedConcurrentExecutions: 2
+      EventInvokeConfig:
+        MaximumEventAgeInSeconds: 60
+        MaximumRetryAttempts: 0
+      Environment:
+        Variables:
+          SECRET_ARN: !Ref SecretArn
+          EXPERT_SECRET_ARN: !Ref ExpertSecretArn
+          EXPERT_MODEL: !Ref ExpertModel
+          TABLE_NAME: !Ref Reports
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref Reports
+        - Statement:
+            - Effect: Allow
+              Action: secretsmanager:GetSecretValue
+              Resource: [!Ref SecretArn, !Ref ExpertSecretArn]
+  ExpertLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${ExpertWorker}'
+      RetentionInDays: 14
   Logs:
     Type: AWS::Logs::LogGroup
     Properties:

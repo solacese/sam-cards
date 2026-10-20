@@ -14,6 +14,8 @@ class Handler(SimpleHTTPRequestHandler):
     def __init__(self,*args,**kwargs):
         super().__init__(*args,directory=str(ROOT),**kwargs)
     def do_GET(self):
+        if re.fullmatch(r'/api/research/[a-f0-9]{48}',self.path):
+            return self.proxy(config['apiUrl']+'/'+self.path.rsplit('/',1)[1])
         if self.path.split('?')[0]=='/config.js':
             self.send_response(200);self.send_header('Content-Type','application/javascript');self.end_headers()
             self.wfile.write(b'window.SAM_CARDS_CONFIG = {"apiUrl":"/api/research"};');return
@@ -25,8 +27,10 @@ class Handler(SimpleHTTPRequestHandler):
         if not 0<length<=12000:
             self.send_error(400);return
         body=self.rfile.read(length)
+        self.proxy(config['apiUrl'],body)
+    def proxy(self,url,body=None):
         try:
-            response=urlopen(Request(config['apiUrl'],data=body,headers={'Origin':'https://solacese.github.io','Content-Type':'application/json'}),timeout=24)
+            response=urlopen(Request(url,data=body,headers={'Origin':'https://solacese.github.io','Content-Type':'application/json'}),timeout=24)
         except HTTPError as error:
             response=error
         except URLError:

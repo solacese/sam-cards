@@ -1,4 +1,4 @@
-"""Twenty-second public research API. Credentials never leave the server."""
+"""Public research API and asynchronous expert design. Server-side credentials only."""
 import base64
 import hashlib
 import ipaddress
@@ -6,6 +6,7 @@ import json
 import os
 import re
 import socket
+import secrets
 import time
 import unicodedata
 from datetime import date, datetime, timedelta, timezone
@@ -17,12 +18,15 @@ import boto3
 from botocore.exceptions import ClientError
 from prompt import CAPABILITY_SOURCES, messages
 from schema import TAILORED_RESPONSE_FORMAT
+from expert import EXPERT_VERSION, expert_body, bind_evidence
 
 VERSION = 'company-research-v4'
 SECRET = None
 TOKEN = None
 TABLE = None
+EXPERT_SECRET = None
 DEADLINE_SECONDS = 19
+BEST_SECONDS = 165
 FIELDS = ('title', 'trigger', 'action', 'why_mesh', 'learning', 'human', 'risk', 'revenue', 'metric', 'question')
 
 class ResearchError(Exception):
@@ -87,12 +91,14 @@ def clean_tailoring(value):
     return cleaned
 
 
-def report_cache_key(company, tailoring):
+def report_cache_key(company, tailoring, quality='quick'):
     # Selection order and letter case do not change the brief; different briefs must not share reports.
     identity = {'company': company.casefold(), 'tailoring': {
         key: sorted(item.casefold() for item in value) if isinstance(value, list) else value.casefold()
         for key, value in tailoring.items()
     }}
+    if quality == 'best':
+        identity['quality'] = EXPERT_VERSION + ':' + os.environ.get('EXPERT_MODEL', 'gpt-6-astra')
     digest = hashlib.sha256(json.dumps(identity, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
     return f'cache:{VERSION}:{digest}'
 
@@ -218,7 +224,7 @@ def get_secret():
     return SECRET
 
 
-def research(company, deadline, tailoring=None):
+def research(company, deadline, tailoring=None, include_evidence=False):
     global TOKEN
     credentials=get_secret()
     if not TOKEN or TOKEN['until']<=time.time()+30:
@@ -230,7 +236,13 @@ def research(company, deadline, tailoring=None):
     response=request_json(credentials['DEPLOYMENT_URL'].rstrip('/')+'/chat/completions',deadline,
         body=body,
         headers={'Authorization':'Bearer '+TOKEN['value'],'AI-Resource-Group':credentials['SAP_RESOURCE_GROUP'],'Content-Type':'application/json'})
-    return validate_report(response,company,tailoring)
+    report = validate_report(response,company,tailoring)
+    if include_evidence:
+        snippets = {item.get('url'):str(item.get('snippet') or '')[:2500]
+                    for item in response.get('search_results',[]) if isinstance(item,dict)}
+        report['evidence_excerpts'] = [{'source_id':source['id'],'excerpt':snippets[source['url']]}
+            for source in report['sources'] if snippets.get(source['url'])]
+    return report
 
 
 def table():
@@ -238,6 +250,106 @@ def table():
     if TABLE is None:
         TABLE=boto3.resource('dynamodb').Table(os.environ['TABLE_NAME'])
     return TABLE
+
+
+def expert_research(company, tailoring, deadline, progress):
+    global EXPERT_SECRET
+    progress('researching')
+    # The first pass validates sources and the brief before expensive design begins.
+    evidence = research(company, min(deadline, time.monotonic()+35), tailoring, include_evidence=True)
+    progress('designing')
+    if EXPERT_SECRET is None:
+        EXPERT_SECRET = json.loads(boto3.client('secretsmanager').get_secret_value(SecretId=os.environ['EXPERT_SECRET_ARN'])['SecretString'])
+    model = os.environ.get('EXPERT_MODEL', 'gpt-6-astra')
+    raw = request_json(EXPERT_SECRET['base_url'].rstrip('/')+'/chat/completions', deadline,
+        body=expert_body(company, tailoring, evidence, model),
+        headers={'Authorization':'Bearer '+EXPERT_SECRET['api_key'], 'Content-Type':'application/json'})
+    if raw.get('model') != model:
+        raise ResearchError(502, 'The requested expert model was not confirmed by the service. Please try again.')
+    if raw.get('choices', [{}])[0].get('finish_reason') != 'stop':
+        raise ResearchError(502, 'The expert analysis was incomplete. Please try again.')
+    try:
+        bound = bind_evidence(raw, evidence)
+    except (ValueError, TypeError, KeyError, IndexError):
+        raise ResearchError(502, 'The expert analysis could not be matched to its sources. Please try again.') from None
+    result = validate_report(bound, company, tailoring)
+    result.update(quality='best', model=model, research_model='Perplexity Sonar Pro', expert_version=EXPERT_VERSION)
+    return result
+
+
+def worker(event, context):
+    """An asynchronous invocation; duplicate delivery cannot start a second model call."""
+    job_id = event.get('job_id', '')
+    if not re.fullmatch(r'[a-f0-9]{48}', job_id):
+        return
+    key = {'pk':'job:'+job_id}
+    started = time.monotonic()
+    try:
+        claimed = table().update_item(Key=key,
+            UpdateExpression='SET #state = :running, started_at = :now',
+            ConditionExpression='#state = :queued AND expires_at > :now',
+            ExpressionAttributeNames={'#state':'status'},
+            ExpressionAttributeValues={':running':'researching', ':queued':'queued', ':now':int(time.time())},
+            ReturnValues='ALL_NEW')['Attributes']
+    except ClientError as error:
+        if error.response['Error']['Code']=='ConditionalCheckFailedException':
+            return
+        raise
+    def progress(state):
+        table().update_item(Key=key,UpdateExpression='SET #state = :state',
+            ExpressionAttributeNames={'#state':'status'},ExpressionAttributeValues={':state':state})
+    try:
+        company = claimed['company']
+        tailoring = json.loads(claimed['tailoring'])
+        report = expert_research(company, tailoring, started+BEST_SECONDS, progress)
+        report['elapsed_seconds'] = round(time.monotonic()-started,1)
+        serialized = json.dumps(report,ensure_ascii=False)
+        table().put_item(Item={'pk':claimed['cache_key'], 'expires_at':int(time.time())+21600, 'report':serialized})
+        table().update_item(Key=key,UpdateExpression='SET #state = :state, report = :report',
+            ExpressionAttributeNames={'#state':'status'},ExpressionAttributeValues={':state':'complete', ':report':serialized})
+        print(json.dumps({'event':'expert_complete','model':report['model'],'elapsed_seconds':report['elapsed_seconds']}))
+    except Exception as error:
+        if isinstance(error, ResearchError):
+            code = error.status
+            message = ('Best-quality research reached its time limit. Try again or choose Quick.' if code==504 else
+                       'The analysis service is busy. Try again shortly.' if code==503 else error.message)
+        else:
+            code, message = 500, 'Best-quality research is temporarily unavailable. Try again or choose Quick.'
+        print(json.dumps({'event':'expert_error','type':type(error).__name__, 'status':code}))
+        table().update_item(Key=key,UpdateExpression='SET #state = :state, error_message = :message, error_code = :code',
+            ExpressionAttributeNames={'#state':'status'}, ExpressionAttributeValues={':state':'failed', ':message':message, ':code':code})
+
+
+def job_status(event, origin):
+    job_id = (event.get('pathParameters') or {}).get('job_id', '')
+    if not re.fullmatch(r'[a-f0-9]{48}', job_id):
+        return reply(404, {'error':'Research session not found.'}, origin)
+    job = table().get_item(Key={'pk':'job:'+job_id},ConsistentRead=True).get('Item')
+    now = int(time.time())
+    if not job or int(job['expires_at'])<=now:
+        return reply(404, {'error':'Research session expired. Please generate again.'}, origin)
+    if job['status']=='complete':
+        return reply(200,json.loads(job['report']),origin)
+    if job['status']=='failed':
+        return reply(int(job['error_code']),{'error':job['error_message']},origin)
+    waiting = job['status']=='queued'
+    if now-int(job.get('started_at',job['created_at']))>(75 if waiting else BEST_SECONDS+20):
+        return reply(504,{'error':'Best-quality research reached its time limit. Try again or choose Quick.'},origin)
+    return reply(202,{'job_id':job_id,'status':job['status']},origin)
+
+
+def start_job(company, tailoring, cache_key, now):
+    job_id = secrets.token_hex(24)
+    table().put_item(Item={'pk':'job:'+job_id,'status':'queued','company':company,
+        'tailoring':json.dumps(tailoring,ensure_ascii=False),'cache_key':cache_key,
+        'created_at':now,'expires_at':now+900})
+    try:
+        boto3.client('lambda').invoke(FunctionName=os.environ['WORKER_NAME'],InvocationType='Event',
+            Payload=json.dumps({'job_id':job_id}).encode())
+    except Exception:
+        table().delete_item(Key={'pk':'job:'+job_id})
+        raise
+    return {'job_id':job_id, 'status':'queued'}
 
 
 def consume(key,limit,expires):
@@ -259,7 +371,14 @@ def handler(event, context):
     allowed=os.environ.get('ALLOWED_ORIGIN','https://solacese.github.io')
     if origin!=allowed:
         return reply(403,{'error':'Open the company research tool from its GitHub Pages site.'},allowed)
-    if event.get('requestContext',{}).get('http',{}).get('method')!='POST':
+    method = event.get('requestContext',{}).get('http',{}).get('method')
+    if method=='GET':
+        try:
+            return job_status(event, allowed)
+        except Exception as error:
+            print(json.dumps({'event':'job_status_error','type':type(error).__name__}))
+            return reply(500,{'error':'Could not read the research session. Please try again.'},allowed)
+    if method!='POST':
         return reply(405,{'error':'Use POST to research a company.'},allowed)
     try:
         body=event.get('body') or ''
@@ -269,25 +388,31 @@ def handler(event, context):
             raise ResearchError(400,'The company brief is too long.')
         try:
             data=json.loads(body)
-            if not isinstance(data,dict) or 'company' not in data or set(data)-{'company','tailoring'}:
+            if not isinstance(data,dict) or 'company' not in data or set(data)-{'company','tailoring','quality'}:
                 raise ValueError()
         except (ValueError,TypeError):
             raise ResearchError(400,'Enter a company name and optional tailoring fields.') from None
         company=clean_company(data['company'])
         tailoring=clean_tailoring(data.get('tailoring',{}))
+        quality=data.get('quality','quick')
+        if quality not in ('quick','best'):
+            raise ResearchError(400, 'Choose Quick or Best quality.')
         source_ip=event.get('requestContext',{}).get('http',{}).get('sourceIp','unknown')
         now=int(time.time())
         digest=hashlib.sha256(source_ip.encode()).hexdigest()[:24]
         consume(f'ip:{digest}:{now//3600}',5,now+7200)
-        cache_key=report_cache_key(company,tailoring)
+        cache_key=report_cache_key(company,tailoring,quality)
         cached=table().get_item(Key={'pk':cache_key},ConsistentRead=True).get('Item')
         if cached and int(cached['expires_at'])>now:
             report=json.loads(cached['report']);report['cached']=True
         else:
             consume(f'budget:{datetime.now(timezone.utc).date()}',int(os.environ.get('DAILY_LIMIT','100')),now+172800)
+            if quality=='best':
+                return reply(202,start_job(company,tailoring,cache_key,now),allowed)
             report=research(company,start+DEADLINE_SECONDS,tailoring) if tailoring else research(company,start+DEADLINE_SECONDS)
             table().put_item(Item={'pk':cache_key,'expires_at':now+21600,'report':json.dumps(report,ensure_ascii=False)})
-        report['model']='Perplexity Sonar Pro'
+        if quality=='quick':
+            report['model']='Perplexity Sonar Pro'
         if tailoring:
             report['tailoring']=tailoring
         report['elapsed_seconds']=round(time.monotonic()-start,1)

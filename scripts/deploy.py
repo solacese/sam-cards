@@ -39,9 +39,10 @@ if len(sys.argv)>1:
     arn=secret['ARN']
 else:
     arn=secret_client.describe_secret(SecretId=name)['ARN']
+expert_arn=secret_client.describe_secret(SecretId='sam-cards/expert-model')['ARN']
 output=ROOT/'.aws-sam';output.mkdir(exist_ok=True)
 subprocess.run(['aws','cloudformation','package','--template-file',str(ROOT/'template.yaml'),'--s3-bucket',bucket,'--output-template-file',str(output/'packaged.yaml')],check=True,cwd=ROOT)
-subprocess.run(['aws','cloudformation','deploy','--template-file',str(output/'packaged.yaml'),'--stack-name','sam-cards-research','--capabilities','CAPABILITY_IAM','--parameter-overrides',f'SecretArn={arn}','--tags','Application=sam-cards-research','--no-fail-on-empty-changeset'],check=True,cwd=ROOT)
+subprocess.run(['aws','cloudformation','deploy','--template-file',str(output/'packaged.yaml'),'--stack-name','sam-cards-research','--capabilities','CAPABILITY_IAM','--parameter-overrides',f'SecretArn={arn}',f'ExpertSecretArn={expert_arn}','--tags','Application=sam-cards-research','--no-fail-on-empty-changeset'],check=True,cwd=ROOT)
 outputs=session.client('cloudformation').describe_stacks(StackName='sam-cards-research')['Stacks'][0]['Outputs']
 config={item['OutputKey']:item['OutputValue'] for item in outputs}
 (ROOT/'config.js').write_text('window.SAM_CARDS_CONFIG = '+json.dumps({'apiUrl':config['ApiUrl']})+';\n')

@@ -50,7 +50,7 @@ function businessValues(item) {
 function renderReport(report) {
   const sourceMap = new Map(report.sources.map(item => [item.id,item]));
   document.querySelector('#results-title').textContent = `3 opportunities for ${report.company}`;
-  document.querySelector('#results-date').textContent = `Researched ${displayDate(report.generated_at)} · ${report.cached ? 'Recent saved research' : `${report.elapsed_seconds}s research`} · Perplexity`;
+  document.querySelector('#results-date').textContent = `Researched ${displayDate(report.generated_at)} · ${report.cached ? 'Recent saved research' : `${report.elapsed_seconds}s research`} · Perplexity${report.quality === 'best' ? ' · Expert analysis' : ''}`;
   document.querySelector('#results-overview').textContent = report.overview;
   renderCriteria(report.tailoring);
   document.querySelector('#case-grid').innerHTML = report.cases.map((item,index) => `
@@ -85,6 +85,8 @@ form.addEventListener('submit',async event=> {
   const tailoring = window.Tailoring.collect();
   if (!tailoring) return;
   const request = {company};
+  const best = form.elements.quality.value === 'best';
+  if (best) request.quality = 'best';
   if (Object.keys(tailoring).length) request.tailoring = tailoring;
   const endpoint = window.SAM_CARDS_CONFIG?.apiUrl;
   if (!endpoint) { errorMessage.textContent = 'Research is being configured. Please try again shortly.'; errorMessage.hidden=false; return; }
@@ -97,15 +99,32 @@ form.addEventListener('submit',async event=> {
   researchButton.disabled = true;
   companyInput.readOnly = true;
   window.Tailoring.setBusy(true);
+  document.querySelector('#quality-options').disabled = true;
   exportButton.disabled = true;
-  timer.textContent='20s';
+  timer.textContent=best ? '0s' : '20s';
+  const statusText = document.querySelector('#status-text');
+  statusText.textContent=best ? 'Starting your research…' : 'Researching recent news…';
   const controller = new AbortController();
   const started = Date.now();
-  const ticker = setInterval(()=>{timer.textContent=`${Math.max(0,20-Math.floor((Date.now()-started)/1000))}s`;},250);
-  const timeout = setTimeout(()=>controller.abort(),20000);
+  const ticker = setInterval(()=>{const elapsed=Math.floor((Date.now()-started)/1000);timer.textContent=`${best ? elapsed : Math.max(0,20-elapsed)}s`;},250);
+  const timeout = setTimeout(()=>controller.abort(),best ? 255000 : 20000);
   try {
-    const response = await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(request),signal:controller.signal});
-    const report = await response.json();
+    let response = await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(request),signal:controller.signal});
+    let report = await response.json();
+    while (response.status === 202) {
+      if (!/^[a-f0-9]{48}$/.test(report.job_id || '')) throw new Error('The research session could not be started. Please try again.');
+      const phase=({queued:'Waiting for research to start…',researching:'Researching recent news with Perplexity…',designing:'Designing and selecting your three strongest cases…'})[report.status] || 'Working on your cases…';
+      if(statusText.textContent!==phase) statusText.textContent=phase;
+      await new Promise((resolve,reject)=> {
+        const abort=()=> {clearTimeout(wait);reject(new DOMException('Aborted','AbortError'));};
+        const wait=setTimeout(()=> {controller.signal.removeEventListener('abort',abort);resolve();},3000);
+        if(controller.signal.aborted) abort();else controller.signal.addEventListener('abort',abort,{once:true});
+      });
+      response = await fetch(`${endpoint.replace(/\/$/,'')}/${report.job_id}`,{signal:controller.signal});
+      // Shared API throttling can briefly affect polling; do not restart a paid job.
+      if (response.status === 429) { response = {status:202}; continue; }
+      report = await response.json();
+    }
     if (!response.ok) throw new Error(report.error || 'Research is temporarily unavailable. Please try again.');
     if (!Array.isArray(report.cases) || report.cases.length!==3 || !Array.isArray(report.sources) || report.cases.some(item=>!Array.isArray(item.agents)||item.agents.length<2||item.agents.length>3)) {
       throw new Error('The report was incomplete. Please try again.');
@@ -117,7 +136,7 @@ form.addEventListener('submit',async event=> {
     renderReport(report);
     exportButton.disabled = false;
   } catch(error) {
-    errorMessage.textContent = error.name==='AbortError' ? 'Research reached the 20-second limit. Please try again.' : error.message==='Failed to fetch' ? 'Could not reach the research service. Check your connection and try again.' : error.message;
+    errorMessage.textContent = error.name==='AbortError' ? (best ? 'Best-quality research reached its time limit. Try again or choose Quick.' : 'Research reached the 20-second limit. Please try again.') : error.message==='Failed to fetch' ? 'Could not reach the research service. Check your connection and try again.' : error.message;
     errorMessage.hidden = false;
   } finally {
     clearInterval(ticker); clearTimeout(timeout);
@@ -125,6 +144,7 @@ form.addEventListener('submit',async event=> {
     researchButton.disabled = false;
     companyInput.readOnly = false;
     window.Tailoring.setBusy(false);
+    document.querySelector('#quality-options').disabled = false;
     busy = false;
   }
 });
