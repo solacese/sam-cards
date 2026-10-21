@@ -58,12 +58,13 @@ test('exactly one case per page, with its evidence and linked source',()=> {
 
 test('tailored system roles, assumptions and measured value remain legible',()=> {
   const data=report();data.tailoring={departments:['Finance','Procurement'],topic:'Supplier onboarding'};
-  data.cases.forEach(item=>item.fit={outcomes:[{name:'Reduce risk',impact:'Prevent approval before supplier evidence is reviewed.'}],systems:[{name:'Salesforce',role:'Proposed onboarding request input; access unconfirmed.'},{name:'SharePoint',role:'Proposed document evidence; integration unconfirmed.'}],assumptions:'Records, access and integrations are unverified.'});
+  data.cases.forEach(item=>item.fit={outcomes:[{name:'Reduce risk',impact:'Prevent approval before supplier evidence is reviewed.'}],systems:[{name:'Salesforce',role:'Hypothetical pending onboarding approval and signoff versions; records, events, permissions and usefulness unconfirmed.'},{name:'SharePoint',role:'Hypothetical manufacturing scope revision evidence; records, events, access and connector feasibility remain unconfirmed.'}],assumptions:'Records, access and integrations are unverified.'});
   const tracker=instrumented();assert.equal(createResearchPDF(data,tracker.Constructor).getNumberOfPages(),3);
   assertFits(tracker.text);
   for(let page=1;page<=3;page++) {
     const text=tracker.text.filter(item=>item.page===page).map(item=>item.content).join('\n');
     for(const expected of ['Finance / Procurement','Supplier onboarding','Salesforce:','SharePoint:','Records, access and integrations'])assert.ok(text.includes(expected));
+    assert.ok(text.replace(/\s+/g,' ').includes('connector feasibility remain unconfirmed.'));
   }
 });
 

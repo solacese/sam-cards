@@ -79,12 +79,12 @@
       const systems=item.fit?.systems||[];
       column([
         {label:'Human approval',text:item.human,max:5},
-        ...(systems.length?[{label:'Proposed system roles',text:systems.map(system=>`${system.name}: ${system.role}`).join('\n'),max:8}]:[]),
+        ...(systems.length?[{label:'Proposed system roles',text:systems.map(system=>`${system.name}: ${system.role}`).join('\n'),max:12}]:[]),
         {label:'How it improves',text:item.learning,max:6}
       ],rightX,top,rightWidth,221);
       doc.setDrawColor(...LINE);doc.line(margin,225,192,225);
       label('Measure in a pilot',margin,233);
-      write(clip(lines(item.metric,81,10),3,81,10),margin,239,10);
+      write(clip(lines(item.metric.replace(/^pilot:\s*/i,''),81,10),3,81,10),margin,239,10);
       label('Ask the customer',111,233);
       write(clip(lines(item.question,81,10),3,81,10),111,239,10);
       const assumptions=item.fit?.assumptions||'Proposed workflow. Confirm system access, integration work, business rules and approval controls with the customer.';
