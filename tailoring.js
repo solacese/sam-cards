@@ -11,8 +11,8 @@
   if (typeof module !== 'undefined' && module.exports) module.exports = {summaryEntries};
   if (typeof document === 'undefined') return;
   const suggestions = {
-    departments:['HR','Finance','Logistics','Procurement','Operations','IT','Legal','Sales','Customer Service'],
-    outcomes:['Protect revenue','Reduce risk','Reduce costs','Improve efficiency','Improve customer experience','Ensure compliance'],
+    departments:['HR','Finance','Logistics','Procurement','Operations','IT','Legal','Sales','Service & support'],
+    outcomes:['Protect revenue','Reduce risk','Reduce costs','Improve efficiency','Improve experience','Ensure compliance'],
     systems:['Salesforce','SharePoint','SAP','ServiceNow','Microsoft Dynamics','Workday']
   };
   const nouns = {departments:'department',outcomes:'outcome',systems:'system'};

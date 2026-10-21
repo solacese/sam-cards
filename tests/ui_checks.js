@@ -27,7 +27,7 @@ async (page) => {
     const data=jobFailure?{error:'Expert analysis failed. Try Quick.'}:status===200?{...fixture(jobBrief),quality:'best'}:{job_id:jobId,status:polls===1?'researching':'designing'};
     await route.fulfill({status,contentType:'application/json',body:JSON.stringify(data)});
   });
-  const reset=async()=> { await page.goto('http://127.0.0.1:8921/');await page.getByRole('textbox',{name:'Company name',exact:true}).fill('Novo Nordisk');await page.getByRole('radio',{name:'Quick',exact:false}).check(); };
+  const reset=async()=> { await page.goto('http://127.0.0.1:8921/');await page.getByRole('textbox',{name:'Organization name',exact:true}).fill('Novo Nordisk');await page.getByRole('radio',{name:'Quick',exact:false}).check(); };
   const open=async()=> {if(!await page.locator('.tailor-panel').evaluate(el=>el.open))await page.locator('.tailor-panel > summary').click();};
   const promptFor=async index=>page.evaluate(({report,index})=>window.QuickBuild.buildPrompt(report,report.cases[index],index),{report:lastReport,index});
   const choose=async(key,names)=> {
@@ -46,6 +46,9 @@ async (page) => {
     await reset(); await generate();equal(requests.at(-1),{company:'Novo Nordisk'},'Company-only payload changed');
     check(!await page.locator('#criteria-summary').isVisible(),'Empty brief summary should be hidden');
     check(await page.locator('.case-card').count()===3,'Company-only cards missing');
+    check(await page.getByRole('textbox',{name:'Organization name',exact:true}).getAttribute('placeholder')==='Enter an organization name','Organization input wording is inconsistent');
+    const description=await page.locator('.case-description').first().innerText();
+    check(description.includes('Review supplier evidence before approval')&&description.includes('Starts when: Missing supplier document event.')&&description.includes('Human review: Finance approves the onboarding decision.'),'The left-hand case explanation is incomplete');
     check(await page.locator('.case-flag').count()===3,'Case emoji markers missing');
     check(await page.locator('.case-flag').evaluateAll(elements=>elements.every(el=>[...new Intl.Segmenter('en',{granularity:'grapheme'}).segment(el.textContent)].length===1)),'A case has more than one emoji marker');
     check(await page.locator('.case-card').first().evaluate(el=>el.getBoundingClientRect().width>900),'Desktop cards are still narrow');
@@ -130,8 +133,8 @@ async (page) => {
     await open();
     await page.locator('[data-multi="outcomes"] summary').click();
     check(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth),'Mobile page overflows');
-    await page.getByRole('checkbox',{name:'Improve customer experience',exact:true}).check();await page.keyboard.press('Escape');
-    await generate();check(requests.at(-1).tailoring.outcomes.includes('Improve customer experience'),'Mobile multi-select failed');
+    await page.getByRole('checkbox',{name:'Improve experience',exact:true}).check();await page.keyboard.press('Escape');
+    await generate();check(requests.at(-1).tailoring.outcomes.includes('Improve experience'),'Mobile multi-select failed');
     await page.evaluate(()=> {Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async()=>{throw new Error('Test clipboard denial');}}});Object.defineProperty(document,'execCommand',{configurable:true,writable:true,value:()=>false});});
     await page.locator('.copy-prompt-button').first().click();
     check(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth),'Mobile manual-copy dialog overflows');

@@ -4,30 +4,31 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#ffffff">
-  <meta name="description" content="Find three event-triggered Solace Agent Mesh opportunities for your organization, grounded in recent company news.">
+  <meta name="description" content="Find three event-triggered Solace Agent Mesh opportunities for your organization, grounded in recent news.">
   <title>What can Agent Mesh do for your organization?</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="icon" href="assets/solace-logo.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=13">
+  <link rel="stylesheet" href="styles.css?v=15">
   <script src="config.js?v=9" defer></script>
   <script src="assets/vendor/jspdf.umd.min.js" defer></script>
-  <script src="tailoring.js?v=11" defer></script>
-  <script src="pdf-export.js?v=14" defer></script>
-  <script src="quick-build.js?v=13" defer></script>
-  <script src="app.js?v=13" defer></script>
+  <script src="report-content.js?v=15" defer></script>
+  <script src="tailoring.js?v=15" defer></script>
+  <script src="pdf-export.js?v=15" defer></script>
+  <script src="quick-build.js?v=15" defer></script>
+  <script src="app.js?v=15" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main-content">Skip to content</a>
-  <header class="site-header"><a class="brand" href="./" aria-label="Agent Mesh company research"><img src="assets/solace-logo.svg" alt="Solace" width="86" height="22"><span>Agent Mesh</span></a></header>
+  <header class="site-header"><a class="brand" href="./" aria-label="Agent Mesh organization research"><img src="assets/solace-logo.svg" alt="Solace" width="86" height="22"><span>Agent Mesh</span></a></header>
   <main id="main-content" tabindex="-1">
     <section class="prompt-screen" aria-labelledby="prompt-title">
       <p class="eyebrow">AGENT MESH OPPORTUNITIES</p>
       <h1 id="prompt-title">What can Agent Mesh do<br><em>for your organization?</em></h1>
       <form id="research-form">
-        <label class="sr-only" for="company">Company name</label>
-        <div class="prompt-box"><input id="company" name="company" type="text" placeholder="Enter a company name" required minlength="2" maxlength="100" autocomplete="organization" spellcheck="false"><button id="research-button" type="submit">Find 3 cases <span aria-hidden="true">→</span></button></div>
+        <label class="sr-only" for="company">Organization name</label>
+        <div class="prompt-box"><input id="company" name="company" type="text" placeholder="Enter an organization name" required minlength="2" maxlength="100" autocomplete="organization" spellcheck="false"><button id="research-button" type="submit">Find 3 cases <span aria-hidden="true">→</span></button></div>
         <fieldset class="quality-options" id="quality-options">
           <legend class="sr-only">Research depth</legend>
           <label><input type="radio" name="quality" value="best" checked>Best quality <span>about 1–3 min</span></label>
@@ -43,7 +44,7 @@
               <div class="tailor-field" data-multi="outcomes" data-label="Desired business outcome"></div>
               <div class="tailor-field" data-multi="systems" data-label="Systems involved"></div>
             </div>
-            <p class="tailor-help">Named systems are your context, not verified company installations or available integrations.</p>
+            <p class="tailor-help">Named systems are your context, not verified organization installations or available integrations.</p>
             <p id="tailoring-feedback" class="tailoring-feedback" role="status" aria-live="polite"></p>
           </fieldset>
         </details>
@@ -56,10 +57,10 @@
       <header class="results-header"><div><h2 id="results-title" tabindex="-1"></h2><p class="results-date" id="results-date"></p></div><button class="export-button" id="export-button" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M4 17v4h16v-4"/></svg>Export PDF</button></header>
       <aside id="criteria-summary" class="criteria-summary" aria-label="Selected tailoring criteria" hidden></aside>
       <div class="case-grid" id="case-grid"></div>
-      <p class="results-note">Proposed workflows. Confirm systems, approvals and value with your customer.</p>
+      <p class="results-note">Proposed workflows. Confirm systems, approvals and value with your organization.</p>
       <details class="sources-section"><summary>Sources</summary><ol id="sources-list"></ol><p class="capability-note">Agent Mesh: <a href="https://docs.solace.com/Agent-Mesh/Framework/building/entrypoints/event-mesh/index.htm" target="_blank" rel="noopener noreferrer">event entrypoints</a> · <a href="https://docs.solace.com/Agent-Mesh/Framework/concepts/event-driven-mesh.htm" target="_blank" rel="noopener noreferrer">event fabric</a></p></details>
     </section>
-    <noscript><p class="error-message">Enable JavaScript to research a company.</p></noscript>
+    <noscript><p class="error-message">Enable JavaScript to research an organization.</p></noscript>
   </main>
   <dialog id="copy-prompt-dialog" aria-labelledby="copy-dialog-title"><h2 id="copy-dialog-title">Copy prompt</h2><p>Copy the selected text with Ctrl+C, ⌘C or your device’s Copy menu.</p><label class="sr-only" for="manual-prompt">Complete Quick Builder prompt</label><textarea id="manual-prompt" readonly spellcheck="false"></textarea><form method="dialog"><button type="submit">Close</button></form></dialog>
 </body>

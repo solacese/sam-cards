@@ -49,6 +49,8 @@ test('exactly one case per page, with its evidence and linked source',()=> {
     const contents=tracker.text.filter(item=>item.page===page).map(item=>item.content).join('\n');
     assert.ok(contents.includes(`Opportunity ${page}`));
     assert.ok(contents.includes(`Fictional development ${page}`));
+    assert.ok(contents.includes('ASK YOUR ORGANIZATION'));
+    assert.ok(!/\bcustomer\b/i.test(contents),'PDF contains inconsistent customer wording');
     for(let other=1;other<=3;other++)if(other!==page)assert.ok(!contents.includes(`Opportunity ${other}`));
     assert.ok(tracker.links.some(link=>link.page===page&&link.url===data.sources[page-1].url));
   }

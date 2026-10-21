@@ -1,12 +1,14 @@
 /* Three-page opportunity brief. jsPDF is vendored under its MIT license. */
 (function(root) {
   'use strict';
+  const content=typeof module!=='undefined'&&module.exports?require('./report-content.js'):root.ReportContent;
   const NAVY=[9,59,95],GREEN=[0,111,83],MUTED=[72,101,116],LINE=[205,222,221];
   const PALE=[[237,249,241],[239,246,251],[252,246,235]];
   function plain(value) {
     return String(value??'').normalize('NFKC').replace(/[‘’]/g,"'").replace(/[“”]/g,'"').replace(/[–—‑]/g,'-').replace(/\u00a0/g,' ').replace(/→/g,'to').replace(/[^\x09\x0A\x0D\x20-\x7E\xA0-\xFF]/g,'').trim();
   }
   function createResearchPDF(report,JsPDF) {
+    report=content.presentReport(report);
     const doc=new JsPDF({unit:'mm',format:'a4',compress:true});
     const margin=18,width=174;
     const researched=new Date(report.generated_at).toISOString().slice(0,10);
@@ -85,9 +87,9 @@
       doc.setDrawColor(...LINE);doc.line(margin,225,192,225);
       label('Measure in a pilot',margin,233);
       write(clip(lines(item.metric.replace(/^pilot:\s*/i,''),81,10),3,81,10),margin,239,10);
-      label('Ask the customer',111,233);
+      label('Ask your organization',111,233);
       write(clip(lines(item.question,81,10),3,81,10),111,239,10);
-      const assumptions=item.fit?.assumptions||'Proposed workflow. Confirm system access, integration work, business rules and approval controls with the customer.';
+      const assumptions=item.fit?.assumptions||'Proposed workflow. Confirm system access, integration work, business rules and approval controls with the organization.';
       label('Assumptions to validate',margin,259);
       write(clip(lines(assumptions,width,8.5),2,width,8.5),margin,264,8.5,false,MUTED,3.7);
       const sourceMap=new Map(report.sources.map(source=>[source.id,source]));
@@ -102,7 +104,7 @@
       }
       const capability=report.capability_sources?.[0];
       if(capability?.url?.startsWith('https://')) {font(8,false,GREEN);doc.text('Framework reference',margin,284);doc.link(margin,280.5,31,5,{url:capability.url});}
-      font(7.5,false,MUTED);doc.text(condensed?'Condensed brief. Full workflow in the app.':'Proposed opportunity. Validate with the customer.',margin,291);
+      font(7.5,false,MUTED);doc.text(condensed?'Condensed brief. Full workflow in the app.':'Proposed opportunity. Validate with your organization.',margin,291);
       doc.text(`${index+1} / ${report.cases.length}`,192,291,{align:'right'});
     });
     doc.setProperties({title:`Agent Mesh opportunities for ${plain(report.company)}`,subject:'Three sourced opportunity briefs, one case per page',creator:'SAM Cards',author:'Solace Agent Mesh'});

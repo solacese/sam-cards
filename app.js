@@ -58,17 +58,16 @@ function renderReport(report) {
     <article class="case-card" aria-labelledby="case-title-${index+1}">
       <header class="case-head"><span class="case-flag" aria-hidden="true">${window.QuickBuild.FLAGS[index]}</span><div><h3 id="case-title-${index+1}">${escapeHTML(item.title)}</h3><p class="case-news">${sourceLink(sourceMap.get(item.news.source_ids[0]),item.news.headline)}<time datetime="${escapeHTML(item.news.date)}">${displayDate(item.news.date)}</time></p></div></header>
       <div class="case-body"><div class="case-summary">
-      ${section('What they do',item.action)}
+      <p class="case-description">${window.ReportContent.explanation(item).map(part=>`${part.label?`<strong>${escapeHTML(part.label)}:</strong> `:''}${escapeHTML(part.text)}`).join(' ')}</p>
       </div>${businessValues(item)}</div>
       <div class="case-footer"><details class="case-details"><summary>Workflow details <span>${item.agents.length} agents</span></summary>
       ${section('Why Agent Mesh fits',item.why_mesh)}
-      ${section('When it starts',item.trigger)}
       <div class="case-section"><h4>${item.agents.length} focused agents</h4><ul class="agent-list">${item.agents.map(agent=>`<li><strong>${escapeHTML(agent.name)}</strong><span>${escapeHTML(agent.role)}</span></li>`).join('')}</ul></div>
       ${item.fit?.systems.length ? `<div class="case-section"><h4>Proposed system roles</h4><p>User-provided systems; use and integrations are unverified.</p><ul class="system-role-list">${item.fit.systems.map(system=>`<li><strong>${escapeHTML(system.name)}:</strong> ${escapeHTML(system.role)}</li>`).join('')}</ul></div>` : ''}
       ${section('Human approval',item.human)}
       ${section('How it improves',item.learning)}
       ${fitSummary(item.fit)}
-      <div class="case-question"><h4>Ask the customer</h4><p>${escapeHTML(item.question)}</p></div>
+      <div class="case-question"><h4>Ask your organization</h4><p>${escapeHTML(item.question)}</p></div>
       <p class="case-metric"><strong>Measure in a pilot:</strong> ${escapeHTML(item.metric)}</p></details>
       <div class="quick-build">
         <button class="copy-prompt-button" type="button" data-case-index="${index}" aria-label="Copy quick builder prompt for ${escapeHTML(item.title)}">Copy quick builder prompt</button>
@@ -139,11 +138,11 @@ form.addEventListener('submit',async event=> {
     if (request.tailoring && (!report.tailoring || report.cases.some(item=>!item.fit))) {
       throw new Error('The tailored report was incomplete. Please try again.');
     }
-    currentReport = report;
-    renderReport(report);
+    currentReport = window.ReportContent.presentReport(report);
+    renderReport(currentReport);
     exportButton.disabled = false;
   } catch(error) {
-    errorMessage.textContent = error.name==='AbortError' ? (best ? 'Best-quality research reached its time limit. Try again or choose Quick.' : 'Research reached the 20-second limit. Please try again.') : error.message==='Failed to fetch' ? 'Could not reach the research service. Check your connection and try again.' : error.message;
+    errorMessage.textContent = error.name==='AbortError' ? (best ? 'Best-quality research reached its time limit. Try again or choose Quick.' : 'Research reached the 20-second limit. Please try again.') : error.message==='Failed to fetch' ? 'Could not reach the research service. Check your connection and try again.' : window.ReportContent.organizationText(error.message);
     errorMessage.hidden = false;
   } finally {
     clearInterval(ticker); clearTimeout(timeout);
