@@ -7,6 +7,7 @@ const errorMessage = document.querySelector('#error-message');
 const results = document.querySelector('#results');
 const exportButton = document.querySelector('#export-button');
 let currentReport = null;
+let quickBuildPrompts = [];
 let busy = false;
 
 function escapeHTML(value) {
@@ -34,7 +35,7 @@ function renderCriteria(criteria) {
   const summary = document.querySelector('#criteria-summary');
   const entries = window.Tailoring.summaryEntries(criteria);
   summary.hidden = !entries.length;
-  summary.innerHTML = entries.length ? `<h3>Tailored to your brief</h3><dl>${entries.map(([label,value])=>`<div><dt>${escapeHTML(label)}:</dt><dd>${escapeHTML(value)}</dd></div>`).join('')}</dl><p>User-provided context. System use, access and integrations need validation.</p>` : '';
+  summary.innerHTML = entries.length ? `<dl>${entries.map(([label,value])=>`<div><dt>${escapeHTML(label)}:</dt><dd>${escapeHTML(value)}</dd></div>`).join('')}</dl>` : '';
 }
 
 function fitSummary(fit) {
@@ -50,27 +51,33 @@ function businessValues(item) {
 function renderReport(report) {
   const sourceMap = new Map(report.sources.map(item => [item.id,item]));
   document.querySelector('#results-title').textContent = `3 opportunities for ${report.company}`;
-  document.querySelector('#results-date').textContent = `Researched ${displayDate(report.generated_at)} · ${report.cached ? 'Recent saved research' : `${report.elapsed_seconds}s research`} · Perplexity${report.quality === 'best' ? ' · Expert analysis' : ''}`;
-  document.querySelector('#results-overview').textContent = report.overview;
+  document.querySelector('#results-date').textContent = `${displayDate(report.generated_at)} · Perplexity${report.quality === 'best' ? ' · Expert analysis' : ''}${report.cached ? ' · Saved' : ''}`;
   renderCriteria(report.tailoring);
+  quickBuildPrompts = report.cases.map((item,index)=>window.QuickBuild.buildPrompt(report,item,index));
   document.querySelector('#case-grid').innerHTML = report.cases.map((item,index) => `
     <article class="case-card" aria-labelledby="case-title-${index+1}">
-      <header class="case-head"><span class="case-number">0${index+1}</span><h3 id="case-title-${index+1}">${escapeHTML(item.title)}</h3><p class="case-news">${sourceLink(sourceMap.get(item.news.source_ids[0]),item.news.headline)}<time datetime="${escapeHTML(item.news.date)}">${displayDate(item.news.date)}</time></p></header>
-      ${fitSummary(item.fit)}
-      ${businessValues(item)}
+      <header class="case-head"><span class="case-flag" aria-hidden="true">${window.QuickBuild.FLAGS[index]}</span><div><h3 id="case-title-${index+1}">${escapeHTML(item.title)}</h3><p class="case-news">${sourceLink(sourceMap.get(item.news.source_ids[0]),item.news.headline)}<time datetime="${escapeHTML(item.news.date)}">${displayDate(item.news.date)}</time></p></div></header>
+      <div class="case-body"><div class="case-summary">
       ${section('What they do',item.action)}
+      </div>${businessValues(item)}</div>
+      <div class="case-footer"><details class="case-details"><summary>Workflow details <span>${item.agents.length} agents</span></summary>
       ${section('Why Agent Mesh fits',item.why_mesh)}
-      <details class="case-details"><summary>${item.agents.length} agents · approval & improvement</summary>
       ${section('When it starts',item.trigger)}
       <div class="case-section"><h4>${item.agents.length} focused agents</h4><ul class="agent-list">${item.agents.map(agent=>`<li><strong>${escapeHTML(agent.name)}</strong><span>${escapeHTML(agent.role)}</span></li>`).join('')}</ul></div>
       ${item.fit?.systems.length ? `<div class="case-section"><h4>Proposed system roles</h4><p>User-provided systems; use and integrations are unverified.</p><ul class="system-role-list">${item.fit.systems.map(system=>`<li><strong>${escapeHTML(system.name)}:</strong> ${escapeHTML(system.role)}</li>`).join('')}</ul></div>` : ''}
       ${section('Human approval',item.human)}
       ${section('How it improves',item.learning)}
+      ${fitSummary(item.fit)}
       <div class="case-question"><h4>Ask the customer</h4><p>${escapeHTML(item.question)}</p></div>
       <p class="case-metric"><strong>Measure in a pilot:</strong> ${escapeHTML(item.metric)}</p></details>
+      <div class="quick-build">
+        <button class="copy-prompt-button" type="button" data-case-index="${index}" aria-label="Copy quick builder prompt for ${escapeHTML(item.title)}">Copy quick builder prompt</button>
+        <p class="copy-feedback sr-only" role="status" aria-live="polite"></p>
+      </div></div>
     </article>`).join('');
   document.querySelector('#sources-list').innerHTML = report.sources.map(source=>`<li value="${Number(source.id)}">${sourceLink(source)}${source.date ? ` · ${displayDate(source.date)}` : ''}</li>`).join('');
   results.hidden = false;
+  document.querySelector('.tailor-panel').open=false;
   document.body.classList.add('has-results');
   document.title = `${report.company} | Agent Mesh opportunities`;
   document.querySelector('#results-title').focus({preventScroll:true});
@@ -147,6 +154,32 @@ form.addEventListener('submit',async event=> {
     document.querySelector('#quality-options').disabled = false;
     busy = false;
   }
+});
+
+document.querySelector('#case-grid').addEventListener('click',async event=> {
+  const button=event.target.closest('.copy-prompt-button');
+  if(!button || button.disabled) return;
+  const text=quickBuildPrompts[Number(button.dataset.caseIndex)];
+  if(!text) return;
+  const container=button.closest('.quick-build');
+  const feedback=container.querySelector('.copy-feedback');
+  button.disabled=true;
+  try {
+    if(!navigator.clipboard?.writeText) throw new Error('Clipboard unavailable');
+    await navigator.clipboard.writeText(text);
+    button.textContent='Copied';
+    feedback.textContent='Prompt copied.';
+  } catch {
+    const textarea=document.querySelector('#manual-prompt');
+    const dialog=document.querySelector('#copy-prompt-dialog');
+    textarea.value=text;
+    dialog.showModal();textarea.focus();textarea.select();
+    let copied=false;
+    try {copied=document.execCommand('copy');} catch { /* Manual copy remains available. */ }
+    button.textContent=copied?'Copied':'Copy quick builder prompt';
+    feedback.textContent=copied?'Prompt copied.':'Copy was blocked. The full prompt is selected in the copy dialog.';
+    if(copied) dialog.close();
+  } finally {button.disabled=false;}
 });
 
 exportButton.addEventListener('click',()=> {
