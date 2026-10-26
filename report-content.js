@@ -20,7 +20,7 @@
   }
   function presentCase(item,organization='') {
     const result={...item};
-    for(const key of ['title','trigger','action','why_mesh','human','learning','risk','revenue','metric','question']) {
+    for(const key of ['title','intro','trigger','action','why_mesh','human','learning','risk','revenue','metric','question']) {
       if(typeof item[key]==='string')result[key]=organizationText(item[key],organization);
     }
     result.agents=item.agents.map(agent=>({name:organizationText(agent.name,organization),role:organizationText(agent.role,organization)}));

@@ -59,8 +59,12 @@
       font(27,false,NAVY,'times');
       const title=clip(doc.splitTextToSize(plain(item.title),width),2,width,27);
       let y=write(title,margin,44,27,false,NAVY,10,'times')+3;
-      label(`Why now / ${item.news.date}`,margin,y);
-      y=write(clip(lines(item.news.headline,width,10),2,width,10),margin,y+5,10,false,MUTED)+3;
+      if(item.intro) {
+        y=write(clip(lines(item.intro,width,11),4,width,11),margin,y,11,false,NAVY,4.8)+3;
+      } else {
+        label(`Why now / ${item.news.date}`,margin,y);
+        y=write(clip(lines(item.news.headline,width,10),2,width,10),margin,y+5,10,false,MUTED)+3;
+      }
       const brief=[...(report.tailoring?.departments||[]),report.tailoring?.topic].filter(Boolean).join(' / ');
       if(brief) y=write(clip(lines(brief,width,9),2,width,9),margin,y,9,false,MUTED)+3;
       const values=item.fit?.outcomes?.length?item.fit.outcomes.map(outcome=>({name:outcome.name,text:outcome.impact})):[{name:'Reduce risk',text:item.risk},{name:'Protect or grow revenue',text:item.revenue}];
@@ -93,6 +97,7 @@
       label('Assumptions to validate',margin,259);
       write(clip(lines(assumptions,width,8.5),2,width,8.5),margin,264,8.5,false,MUTED,3.7);
       const sourceMap=new Map(report.sources.map(source=>[source.id,source]));
+      if(item.intro) write(clip(lines(`${item.news.date} / ${item.news.headline}`,width,8),1,width,8),margin,274,8,false,MUTED);
       let linkX=margin;
       for(const id of item.news.source_ids) {
         const source=sourceMap.get(id);if(!source) continue;

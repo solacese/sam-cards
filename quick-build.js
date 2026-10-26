@@ -12,7 +12,7 @@
     const scope=`${slug}-${index+1}`;
     const sources=(report.sources||[]).filter(source=>item.news.source_ids.includes(source.id)).map(source=>({id:source.id,title:source.title,date:source.date,url:source.url}));
     const context={
-      organization:report.company,case_title:item.title,resource_prefix:scope,
+      organization:report.company,case_title:item.title,intro:item.intro||'',resource_prefix:scope,
       research_date:report.generated_at,news:item.news,news_sources:sources,
       user_brief:report.tailoring||{},fit_to_brief:item.fit||null,
       proposed_workflow:{trigger:item.trigger,agents:item.agents,action:item.action,why_agent_mesh:item.why_mesh,

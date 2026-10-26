@@ -14,7 +14,7 @@ def fixture():
     today=datetime.now(timezone.utc).date().isoformat()
     cases=[]
     for i in range(3):
-        cases.append({'title':f'Case {i}', 'news':{'headline':f'News {i}','date':today,'source_ids':[i+1]},'agents':[{'name':'Supply','role':'Check supply'},{'name':'Risk','role':'Assess risk'}],**{k:'Concrete example' for k in ('trigger','action','why_mesh','learning','human','risk','revenue','metric','question')}})
+        cases.append({'title':f'Case {i}', 'intro':f'Team {i} may need several pieces of evidence before approving a request. Missing information can delay their work. This proposed check could help reviewers find gaps before making a decision.', 'news':{'headline':f'News {i}','date':today,'source_ids':[i+1]},'agents':[{'name':'Supply','role':'Check supply'},{'name':'Risk','role':'Assess risk'}],**{k:'Concrete example' for k in ('trigger','action','why_mesh','learning','human','risk','revenue','metric','question')}})
     return {'choices':[{'message':{'content':json.dumps({'company':'Example Company','overview':'Current news','cases':cases})}}],'citations':[f'https://news.example.org/story-{i}' for i in range(3)],'search_results':[]}
 
 class ResearchTests(unittest.TestCase):
@@ -22,6 +22,12 @@ class ResearchTests(unittest.TestCase):
         raw=fixture();report=json.loads(raw['choices'][0]['message']['content']);change(report);raw['choices'][0]['message']['content']=json.dumps(report);return raw
     def test_complete_report(self):
         result=validate_report(fixture(),'Example');self.assertEqual(len(result['cases']),3);self.assertEqual(len(result['sources']),3)
+        self.assertTrue(all(len(case['intro'].split())>=20 for case in result['cases']))
+    def test_reject_missing_short_or_oversized_introduction(self):
+        for change in (lambda r:r['cases'][0].pop('intro'),lambda r:r['cases'][0].update(intro=''),lambda r:r['cases'][0].update(intro='A generic opportunity.'),lambda r:r['cases'][0].update(intro='word '*86)):
+            with self.subTest(change=change),self.assertRaises(ResearchError):validate_report(self.mutate(change),'Example')
+    def test_reject_repeated_introductions(self):
+        with self.assertRaises(ResearchError):validate_report(self.mutate(lambda r:r['cases'][1].update(intro=r['cases'][0]['intro'])),'Example')
     def test_reject_more_than_three_agents(self):
         with self.assertRaises(ResearchError):validate_report(self.mutate(lambda r:r['cases'][0]['agents'].extend([{'name':'Third','role':'x'},{'name':'Fourth','role':'x'}])),'Example')
     def test_reject_one_agent(self):

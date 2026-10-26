@@ -17,10 +17,10 @@ from urllib.request import Request, urlopen
 import boto3
 from botocore.exceptions import ClientError
 from prompt import CAPABILITY_SOURCES, messages
-from schema import TAILORED_RESPONSE_FORMAT
+from schema import TAILORED_RESPONSE_FORMAT, COMPANY_RESPONSE_FORMAT
 from expert import EXPERT_VERSION, expert_body, bind_evidence
 
-VERSION = 'company-research-v4'
+VERSION = 'organization-research-v7-intros'
 SECRET = None
 TOKEN = None
 TABLE = None
@@ -134,6 +134,9 @@ def validate_report(raw, requested_company, tailoring=None):
         used = set()
         for item in cases:
             result = {key:text_field(item.get(key)) for key in FIELDS}
+            result['intro'] = text_field(item.get('intro'),650)
+            if not 20 <= len(result['intro'].split()) <= 85:
+                raise ValueError('context intro length')
             if tailoring:
                 fit = item['fit']
                 result['fit'] = {'assumptions':text_field(fit['assumptions'],600)}
@@ -173,7 +176,7 @@ def validate_report(raw, requested_company, tailoring=None):
             used.update(refs)
             result['news']={'headline':text_field(news['headline'],400), 'date':published.isoformat(), 'source_ids':list(dict.fromkeys(refs))}
             cleaned.append(result)
-        if len({item['title'].casefold() for item in cleaned}) != 3 or len(used)<(1 if tailoring else 3):
+        if len({item['title'].casefold() for item in cleaned}) != 3 or len({item['intro'].casefold() for item in cleaned}) != 3 or len(used)<(1 if tailoring else 3):
             raise ValueError('duplicate cases or insufficient sources')
         overview = re.sub(r'\[\d+(?:\s*,\s*\d+)*\]', '', text_field(report.get('overview'),600)).strip()
         result = {'company':text_field(report.get('company'),160),'requested_company':requested_company,'overview':text_field(overview,600),'cases':cleaned,'sources':[item for item in sources if item['id'] in used],'capability_sources':CAPABILITY_SOURCES,'generated_at':datetime.now(timezone.utc).isoformat(),'model':'Perplexity Sonar Pro','version':VERSION,'cached':False}
@@ -186,7 +189,7 @@ def validate_report(raw, requested_company, tailoring=None):
         safe_reasons = {'case count', 'missing tailoring coverage', 'tailoring names do not match the brief',
                         'requires two or three agents', 'duplicate agents', 'stale or future news',
                         'invalid citation', 'no safe citation', 'news date differs from source metadata',
-                        'duplicate cases or insufficient sources'}
+                        'duplicate cases or insufficient sources', 'context intro length'}
         reason = str(error) if type(error) is ValueError and str(error) in safe_reasons else type(error).__name__
         print(json.dumps({'event':'invalid_research','reason':reason}))
         raise ResearchError(502, 'The research did not return three complete cases with recent sources. Please try again.') from None
@@ -230,9 +233,9 @@ def research(company, deadline, tailoring=None, include_evidence=False):
     if not TOKEN or TOKEN['until']<=time.time()+30:
         auth=request_json(credentials['SAP_AUTH_URL'],deadline,body={'grant_type':'client_credentials','client_id':credentials['SAP_CLIENT_ID'],'client_secret':credentials['SAP_CLIENT_SECRET']},headers={'Content-Type':'application/x-www-form-urlencoded'},form=True)
         TOKEN={'value':auth['access_token'],'until':time.time()+int(auth.get('expires_in',300))}
-    body={'model':credentials['MODEL'],'messages':messages(company,tailoring),'temperature':.2,'max_tokens':3600 if tailoring else 2600,'search_recency_filter':'month'}
-    if tailoring:
-        body['response_format']=TAILORED_RESPONSE_FORMAT
+    tokens=(4000 if tailoring else 3000) if include_evidence else (3300 if tailoring else 2500)
+    body={'model':credentials['MODEL'],'messages':messages(company,tailoring,compact=not include_evidence),'temperature':.2,'max_tokens':tokens,'search_recency_filter':'month'}
+    body['response_format']=TAILORED_RESPONSE_FORMAT if tailoring else COMPANY_RESPONSE_FORMAT
     response=request_json(credentials['DEPLOYMENT_URL'].rstrip('/')+'/chat/completions',deadline,
         body=body,
         headers={'Authorization':'Bearer '+TOKEN['value'],'AI-Resource-Group':credentials['SAP_RESOURCE_GROUP'],'Content-Type':'application/json'})

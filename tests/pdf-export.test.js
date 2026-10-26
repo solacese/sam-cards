@@ -76,7 +76,7 @@ test('long supported fields stay on three pages without overlaps; condensation i
   data.tailoring={departments:Array(8).fill('Custom department with a very long display name'),topic:'Supplier onboarding '.repeat(10)};
   data.cases.forEach((item,index)=> {
     for(const key of ['title','trigger','action','why_mesh','human','learning','risk','revenue','metric','question'])item[key]=long;
-    item.title+=index;item.news.headline=long.slice(0,400);
+    item.title+=index;item.intro=long.slice(0,650);item.news.headline=long.slice(0,400);
     item.agents=Array.from({length:3},(_,i)=>({name:`Agent ${i}`,role:long.slice(0,200)}));
     item.fit={outcomes:Array.from({length:8},(_,i)=>({name:`Long custom outcome ${i}`,impact:long.slice(0,400)})),systems:Array.from({length:8},(_,i)=>({name:`System ${i}`,role:long.slice(0,400)})),assumptions:long.slice(0,600)};
   });
@@ -88,4 +88,16 @@ test('PDF source links do not accept non-HTTPS destinations',()=> {
   const data=report();data.sources[0].url='javascript:alert(1)';
   const tracker=instrumented();createResearchPDF(data,tracker.Constructor);
   assert.ok(tracker.links.every(link=>link.url.startsWith('https://')));
+});
+
+test('context introductions appear before the workflow while all cases stay on their own page',()=> {
+  const data=report();
+  data.cases.forEach((item,index)=>item.intro=`Team ${index+1} may need several documents before approving a supplier. Missing paperwork can hold up the work or lead to a rushed decision. This proposed check could help the team find gaps before making an approval.`);
+  const tracker=instrumented();assert.equal(createResearchPDF(data,tracker.Constructor).getNumberOfPages(),3);assertFits(tracker.text);
+  for(let page=1;page<=3;page++) {
+    const text=tracker.text.filter(item=>item.page===page).map(item=>item.content).join('\n');
+    assert.ok(text.includes(`Team ${page} may need`));
+    assert.ok(text.indexOf(`Team ${page} may need`)<text.indexOf('WHEN IT STARTS'));
+    assert.ok(text.includes(`Fictional development ${page}`));
+  }
 });

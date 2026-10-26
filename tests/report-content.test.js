@@ -54,3 +54,12 @@ test('Quick Builder context uses organization and keeps the richer explanation g
   const instructions=text.split('END_CASE_CONTEXT\n')[1];
   assert.ok(!/\bcustomers?\b|\bcompany\b/i.test(instructions));
 });
+
+test('case-specific introductions survive normalization and copying without touching their news evidence',()=> {
+  const raw=fixture();raw.cases[0].intro='A company may need several approvals before using a new supplier. Missing paperwork can slow this down. This proposed check could help the team find gaps sooner.';
+  const shown=presentReport(raw);
+  assert.ok(shown.cases[0].intro.startsWith('An organization may need'));
+  const context=JSON.parse(buildPrompt(raw,raw.cases[0]).split('\nCASE_CONTEXT\n')[1].split('\nEND_CASE_CONTEXT\n')[0]);
+  assert.equal(context.intro,shown.cases[0].intro);
+  assert.deepEqual(context.news,raw.cases[0].news);
+});
