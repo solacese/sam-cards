@@ -20,7 +20,7 @@ from prompt import CAPABILITY_SOURCES, messages, evidence_messages
 from schema import TAILORED_RESPONSE_FORMAT, COMPANY_RESPONSE_FORMAT, EVIDENCE_RESPONSE_FORMAT
 from expert import EXPERT_VERSION, expert_body, bind_evidence
 
-VERSION = 'organization-research-v7-intros'
+VERSION = 'organization-research-v8-context'
 SECRET = None
 TOKEN = None
 TABLE = None
@@ -117,15 +117,30 @@ def public_sources(raw):
         url = safe_url(url)
         if url:
             item = search.get(url, {})
-            sources.append({'id':index,'url':url,'title':str(item.get('title') or urlsplit(url).hostname)[:300], 'date':str(item.get('date') or '')[:10]})
+            published=str(item.get('date') or '')[:10]
+            try:
+                parsed=date.fromisoformat(published)
+                if parsed>datetime.now(timezone.utc).date():published=''
+            except ValueError:
+                published=''
+            sources.append({'id':index,'url':url,'title':str(item.get('title') or urlsplit(url).hostname)[:300], 'date':published})
     return sources
 
 
 def clean_news(news, sources, citation_count):
+    basis=news.get('basis','recent_news')
+    if basis not in ('recent_news','background','hypothesis'):
+        raise ValueError('invalid evidence basis')
+    if basis=='hypothesis':
+        if news.get('date') or news.get('source_ids')!=[]:
+            raise ValueError('hypothesis cannot claim evidence')
+        return {'headline':'Proposed workflow to validate','date':'','source_ids':[],'basis':'hypothesis'}
     ids={source['id'] for source in sources}
     today=datetime.now(timezone.utc).date()
-    published = date.fromisoformat(news['date'])
-    if not today - timedelta(days=180) <= published <= today:
+    published = date.fromisoformat(news['date']) if news.get('date') else None
+    if basis=='recent_news' and (published is None or not today - timedelta(days=180) <= published <= today):
+        raise ValueError('stale or future news')
+    if published and published>today:
         raise ValueError('stale or future news')
     refs = news['source_ids']
     if not isinstance(refs,list) or not refs or any(type(i) is not int or not 1 <= i <= citation_count for i in refs):
@@ -136,12 +151,12 @@ def clean_news(news, sources, citation_count):
     if not refs:
         raise ValueError('no safe citation')
     dated_refs = [source['date'] for source in sources if source['id'] in refs and re.fullmatch(r'\d{4}-\d{2}-\d{2}',source['date'])]
-    if dated_refs and published.isoformat() not in dated_refs:
+    if published and dated_refs and published.isoformat() not in dated_refs:
         raise ValueError('news date differs from source metadata')
-    if dated_refs:
+    if published and dated_refs:
         supported_ids = {source['id'] for source in sources if not re.fullmatch(r'\d{4}-\d{2}-\d{2}',source['date']) or source['date']==published.isoformat()}
         refs = [i for i in refs if i in supported_ids]
-    return {'headline':text_field(news['headline'],400), 'date':published.isoformat(), 'source_ids':list(dict.fromkeys(refs))}
+    return {'headline':text_field(news['headline'],400), 'date':published.isoformat() if published else '', 'source_ids':list(dict.fromkeys(refs)),'basis':basis}
 
 
 def evidence_report(raw, company, tailoring=None):
@@ -149,32 +164,34 @@ def evidence_report(raw, company, tailoring=None):
         content=raw['choices'][0]['message']['content'].strip()
         content=re.sub(r'^```(?:json)?\s*|\s*```$', '', content)
         data=json.loads(content)
-        if data.get('error'):
-            raise ResearchError(422,'Not enough recent, reliable news was found. Try the full organization name.')
-        items=data.get('evidence')
-        if not isinstance(items,list) or not 1<=len(items)<=5:
+        items=data.get('evidence',[])
+        if not isinstance(items,list) or len(items)>5:
             raise ValueError('evidence count')
         sources=public_sources(raw)
-        facts=[clean_news(item,sources,len(raw.get('citations',[]))) for item in items]
+        facts=[]
+        for item in items:
+            try:
+                news=clean_news(item,sources,len(raw.get('citations',[])))
+                if news['basis']!='hypothesis':facts.append(news)
+            except (ValueError,TypeError,KeyError,AttributeError):
+                print(json.dumps({'event':'evidence_item_discarded'}))
         used={source_id for news in facts for source_id in news['source_ids']}
-        if len(used)<(1 if tailoring else 3):
-            raise ValueError('insufficient sources')
         return {'company':company,'cases':[{'news':news} for news in facts],'sources':[source for source in sources if source['id'] in used]}
     except ResearchError:
         raise
     except (ValueError,TypeError,KeyError,IndexError,AttributeError):
         print(json.dumps({'event':'invalid_evidence'}))
-        raise ResearchError(502,'The research did not return enough reliable dated sources. Please try again.') from None
+        raise ResearchError(502,'The research response could not be read. Please try again.') from None
 
 
 def validate_report(raw, requested_company, tailoring=None):
-    """Only expose a complete, recent, citation-backed three-case response."""
+    """Three complete cases, with honest labels for news, background and hypotheses."""
     try:
         content = raw['choices'][0]['message']['content'].strip()
         content = re.sub(r'^```(?:json)?\s*|\s*```$', '', content)
         report = json.loads(content)
         if not isinstance(report, dict) or report.get('error'):
-            raise ResearchError(422, 'Not enough recent, reliable news was found. Try the full company name.')
+            raise ResearchError(502, 'The generator did not return three complete opportunities. Please try again.')
         sources = public_sources(raw)
         cases = report.get('cases')
         if not isinstance(cases, list) or len(cases) != 3:
@@ -207,10 +224,12 @@ def validate_report(raw, requested_company, tailoring=None):
             result['news']=clean_news(item['news'],sources,len(raw.get('citations',[])))
             used.update(result['news']['source_ids'])
             cleaned.append(result)
-        if len({item['title'].casefold() for item in cleaned}) != 3 or len({item['intro'].casefold() for item in cleaned}) != 3 or len(used)<(1 if tailoring else 3):
+        if len({item['title'].casefold() for item in cleaned}) != 3 or len({item['intro'].casefold() for item in cleaned}) != 3:
             raise ValueError('duplicate cases or insufficient sources')
         overview = re.sub(r'\[\d+(?:\s*,\s*\d+)*\]', '', text_field(report.get('overview'),600)).strip()
         result = {'company':text_field(report.get('company'),160),'requested_company':requested_company,'overview':text_field(overview,600),'cases':cleaned,'sources':[item for item in sources if item['id'] in used],'capability_sources':CAPABILITY_SOURCES,'generated_at':datetime.now(timezone.utc).isoformat(),'model':'Perplexity Sonar Pro','version':VERSION,'cached':False}
+        bases={case['news']['basis'] for case in cleaned}
+        result['context_note']=('Limited public information. These are proposed workflows to validate with your organization.' if 'hypothesis' in bases else 'Based on available background information; recent news is not required.' if 'background' in bases else '')
         if tailoring:
             result['tailoring'] = tailoring
         return result
@@ -220,10 +239,10 @@ def validate_report(raw, requested_company, tailoring=None):
         safe_reasons = {'case count', 'missing tailoring coverage', 'tailoring names do not match the brief',
                         'requires two or three agents', 'duplicate agents', 'stale or future news',
                         'invalid citation', 'no safe citation', 'news date differs from source metadata',
-                        'duplicate cases or insufficient sources', 'context intro length'}
+                        'duplicate cases or insufficient sources', 'context intro length', 'invalid evidence basis', 'hypothesis cannot claim evidence'}
         reason = str(error) if type(error) is ValueError and str(error) in safe_reasons else type(error).__name__
         print(json.dumps({'event':'invalid_research','reason':reason}))
-        raise ResearchError(502, 'The research did not return three complete cases with recent sources. Please try again.') from None
+        raise ResearchError(502, 'The generator did not return three complete opportunities with valid evidence labels. Please try again.') from None
 
 
 def remaining(deadline):
@@ -265,7 +284,7 @@ def research(company, deadline, tailoring=None, include_evidence=False):
         auth=request_json(credentials['SAP_AUTH_URL'],deadline,body={'grant_type':'client_credentials','client_id':credentials['SAP_CLIENT_ID'],'client_secret':credentials['SAP_CLIENT_SECRET']},headers={'Content-Type':'application/x-www-form-urlencoded'},form=True)
         TOKEN={'value':auth['access_token'],'until':time.time()+int(auth.get('expires_in',300))}
     tokens=1200 if include_evidence else (3300 if tailoring else 2500)
-    body={'model':credentials['MODEL'],'messages':evidence_messages(company,tailoring) if include_evidence else messages(company,tailoring,compact=True),'temperature':.2,'max_tokens':tokens,'search_recency_filter':'month'}
+    body={'model':credentials['MODEL'],'messages':evidence_messages(company,tailoring) if include_evidence else messages(company,tailoring,compact=True),'temperature':.2,'max_tokens':tokens}
     body['response_format']=EVIDENCE_RESPONSE_FORMAT if include_evidence else TAILORED_RESPONSE_FORMAT if tailoring else COMPANY_RESPONSE_FORMAT
     response=request_json(credentials['DEPLOYMENT_URL'].rstrip('/')+'/chat/completions',deadline,
         body=body,
@@ -290,7 +309,11 @@ def expert_research(company, tailoring, deadline, progress):
     global EXPERT_SECRET
     progress('researching')
     # The first pass validates sources and the brief before expensive design begins.
-    evidence = research(company, min(deadline, time.monotonic()+35), tailoring, include_evidence=True)
+    try:
+        evidence = research(company, min(deadline, time.monotonic()+35), tailoring, include_evidence=True)
+    except ResearchError as error:
+        print(json.dumps({'event':'research_unavailable_using_hypotheses','status':error.status}))
+        evidence={'company':company,'cases':[],'sources':[]}
     progress('designing')
     if EXPERT_SECRET is None:
         EXPERT_SECRET = json.loads(boto3.client('secretsmanager').get_secret_value(SecretId=os.environ['EXPERT_SECRET_ARN'])['SecretString'])

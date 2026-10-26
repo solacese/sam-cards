@@ -52,11 +52,14 @@ function renderReport(report) {
   const sourceMap = new Map(report.sources.map(item => [item.id,item]));
   document.querySelector('#results-title').textContent = `3 opportunities for ${report.company}`;
   document.querySelector('#results-date').textContent = `${displayDate(report.generated_at)} · Perplexity${report.quality === 'best' ? ' · Expert analysis' : ''}${report.cached ? ' · Saved' : ''}`;
+  const contextNote=document.querySelector('#research-context');
+  contextNote.textContent=report.context_note||'';
+  contextNote.hidden=!report.context_note;
   renderCriteria(report.tailoring);
   quickBuildPrompts = report.cases.map((item,index)=>window.QuickBuild.buildPrompt(report,item,index));
   document.querySelector('#case-grid').innerHTML = report.cases.map((item,index) => `
     <article class="case-card" aria-labelledby="case-title-${index+1}">
-      <header class="case-head"><span class="case-flag" aria-hidden="true">${window.QuickBuild.FLAGS[index]}</span><div><h3 id="case-title-${index+1}">${escapeHTML(item.title)}</h3><p class="case-news">${sourceLink(sourceMap.get(item.news.source_ids[0]),item.news.headline)}<time datetime="${escapeHTML(item.news.date)}">${displayDate(item.news.date)}</time></p></div></header>
+      <header class="case-head"><span class="case-flag" aria-hidden="true">${window.QuickBuild.FLAGS[index]}</span><div><h3 id="case-title-${index+1}">${escapeHTML(item.title)}</h3><p class="case-news"><span class="case-basis">${window.ReportContent.evidenceLabel(item.news)}</span>${item.news.basis==='hypothesis'?'':sourceLink(sourceMap.get(item.news.source_ids[0]),item.news.headline)}${item.news.date?`<time datetime="${escapeHTML(item.news.date)}">${displayDate(item.news.date)}</time>`:''}</p></div></header>
       <div class="case-body"><div class="case-summary">
       <p class="case-description">${item.intro?escapeHTML(item.intro):window.ReportContent.explanation(item).map(part=>`${part.label?`<strong>${escapeHTML(part.label)}:</strong> `:''}${escapeHTML(part.text)}`).join(' ')}</p>
       </div>${businessValues(item)}</div>

@@ -8,7 +8,7 @@ def list_schema(item):
 TEXT={'type':'string'}
 CASE=object_schema({
     **{key:TEXT for key in ('title','intro','trigger','action','why_mesh','learning','human','risk','revenue','metric','question')},
-    'news':object_schema({'headline':TEXT,'date':TEXT,'source_ids':list_schema({'type':'integer'})}),
+    'news':object_schema({'headline':TEXT,'date':TEXT,'source_ids':list_schema({'type':'integer'}),'basis':{'type':'string','enum':['recent_news','background','hypothesis']}}),
     'agents':list_schema(object_schema({'name':TEXT,'role':TEXT})),
     'fit':object_schema({
         'departments':list_schema(object_schema({'name':TEXT,'role':TEXT})),
@@ -20,12 +20,12 @@ CASE=object_schema({
 })
 TAILORED_RESPONSE_FORMAT={'type':'json_schema','json_schema':{'schema':object_schema({
     'company':TEXT,'overview':TEXT,'cases':list_schema(CASE),
-    'error':{'type':'string','enum':['','insufficient_recent_news']}
+    'error':{'type':'string','enum':['']}
 })}}
 COMPANY_RESPONSE_FORMAT={'type':'json_schema','json_schema':{'schema':object_schema({
     'company':TEXT,'overview':TEXT,
     'cases':list_schema(object_schema({key:value for key,value in CASE['properties'].items() if key!='fit'})),
-    'error':{'type':'string','enum':['','insufficient_recent_news']}
+    'error':{'type':'string','enum':['']}
 })}}
 EVIDENCE_RESPONSE_FORMAT={'type':'json_schema','json_schema':{'schema':object_schema({
     'evidence':list_schema(CASE['properties']['news']),

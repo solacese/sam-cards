@@ -163,6 +163,29 @@ async (page) => {
     check((await page.locator('#error-message').innerText()).includes('Expert analysis failed'),'Expert failure was not shown');
     check(await page.getByLabel('Topic',{exact:true}).inputValue()==='Supplier onboarding','Expert failure cleared the brief');
     check(!await page.locator('#results').isVisible(),'Expert failure returned an unlabelled lower-quality report');
+    await page.evaluate(report=> {
+      const data={...report,sources:[],context_note:'Limited public information. These are proposed workflows to validate with your organization.',cases:report.cases.map(item=>({...item,news:{headline:'Proposed workflow to validate',date:'',source_ids:[],basis:'hypothesis'}}))};
+      currentReport=data;renderReport(data);
+    },fixture({}));
+    check(await page.locator('.case-card').count()===3,'Limited coverage lost opportunities');
+    check(await page.locator('.case-basis').allTextContents().then(labels=>labels.every(label=>label==='Working hypothesis')),'Hypotheses are not clearly labelled');
+    check(await page.locator('#research-context').isVisible(),'Missing-evidence explanation is hidden');
+    check(await page.locator('.case-news a,.case-news time').count()===0,'Hypotheses show invented sources or dates');
+    const lowCoveragePrompt=await page.evaluate(()=>window.QuickBuild.buildPrompt(currentReport,currentReport.cases[0],0));
+    const lowCoverageContext=JSON.parse(lowCoveragePrompt.split('\nCASE_CONTEXT\n')[1].split('\nEND_CASE_CONTEXT\n')[0]);
+    equal(lowCoverageContext.news.source_ids,[],'Copied hypothesis gained citations');
+    equal(lowCoverageContext.news.date,'','Copied hypothesis gained a date');
+    check(lowCoverageContext.news.basis==='hypothesis','Copied hypothesis lost its evidence status');
+    await page.setViewportSize({width:375,height:812});
+    check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Low-coverage cards overflow mobile');
+    await page.evaluate(()=> {
+      currentReport.cases[0].news={headline:'Organization background',date:'',source_ids:[1],basis:'background'};
+      currentReport.sources=[{id:1,url:'https://example.org/about',title:'Organization background',date:''}];
+      renderReport(currentReport);
+    });
+    check(await page.locator('.case-basis').first().innerText()==='Background','Undated background label is missing');
+    check(await page.locator('.case-news time').count()===0,'Undated background gained a date');
+    check(await page.locator('.case-news a').count()===1,'Undated background lost its source');
     return {assertions,requests:requests.length,result:'passed'};
   } finally {
     await page.evaluate(()=> {delete navigator.clipboard;delete document.execCommand;delete window.__copiedPrompts;});

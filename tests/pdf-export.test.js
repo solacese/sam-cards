@@ -101,3 +101,23 @@ test('context introductions appear before the workflow while all cases stay on t
     assert.ok(text.includes(`Fictional development ${page}`));
   }
 });
+
+test('hypotheses have visible evidence labels with no invented dates or links',()=> {
+  const data=report();data.sources=[];
+  data.cases.forEach(item=>item.news={headline:'Proposed workflow to validate',date:'',source_ids:[],basis:'hypothesis'});
+  const tracker=instrumented(),doc=createResearchPDF(data,tracker.Constructor);
+  assert.equal(doc.getNumberOfPages(),3);assertFits(tracker.text);
+  for(let page=1;page<=3;page++) {
+    const text=tracker.text.filter(item=>item.page===page).map(item=>item.content).join(' ');
+    assert.ok(text.includes('WORKING HYPOTHESIS'));
+    assert.ok(text.includes('No verified organization-specific evidence.'));
+    assert.ok(!text.includes('2026-10-20')&&!text.includes('Invalid Date'));
+    assert.ok(!tracker.links.some(link=>link.page===page&&link.url.includes('news.example.org')));
+  }
+});
+
+test('undated background remains labelled without an article publication date',()=> {
+  const data=report();data.cases.forEach(item=>item.news={...item.news,basis:'background',date:''});
+  const tracker=instrumented();createResearchPDF(data,tracker.Constructor);assertFits(tracker.text);
+  assert.equal(tracker.text.filter(item=>item.content==='BACKGROUND').length,3);
+});

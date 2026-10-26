@@ -36,9 +36,12 @@
     return {...report,cases:report.cases.map(item=>presentCase(item,report.company)),...(report.tailoring?{tailoring:brief(report.tailoring)}:{})};
   }
   function sentence(value) {const text=String(value||'').trim();return text&&!/[.!?]$/.test(text)?text+'.':text;}
+  function evidenceLabel(news={}) {
+    return ({recent_news:'Recent news',background:'Background',hypothesis:'Working hypothesis'})[news.basis||'recent_news']||'Working hypothesis';
+  }
   function explanation(item) {
     return [{label:'',text:sentence(item.action)},{label:'Starts when',text:sentence(item.trigger)},{label:'Human review',text:sentence(String(item.human||'').split(';')[0])}];
   }
-  root.ReportContent={organizationText,optionLabel,presentCase,presentReport,explanation};
+  root.ReportContent={organizationText,optionLabel,presentCase,presentReport,explanation,evidenceLabel};
   if(typeof module!=='undefined'&&module.exports)module.exports=root.ReportContent;
 })(typeof window!=='undefined'?window:globalThis);

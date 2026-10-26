@@ -62,7 +62,7 @@
       if(item.intro) {
         y=write(clip(lines(item.intro,width,11),4,width,11),margin,y,11,false,NAVY,4.8)+3;
       } else {
-        label(`Why now / ${item.news.date}`,margin,y);
+        label([content.evidenceLabel(item.news),item.news.date].filter(Boolean).join(" / "),margin,y);
         y=write(clip(lines(item.news.headline,width,10),2,width,10),margin,y+5,10,false,MUTED)+3;
       }
       const brief=[...(report.tailoring?.departments||[]),report.tailoring?.topic].filter(Boolean).join(' / ');
@@ -93,11 +93,11 @@
       write(clip(lines(item.metric.replace(/^pilot:\s*/i,''),81,10),3,81,10),margin,239,10);
       label('Ask your organization',111,233);
       write(clip(lines(item.question,81,10),3,81,10),111,239,10);
-      const assumptions=item.fit?.assumptions||'Proposed workflow. Confirm system access, integration work, business rules and approval controls with the organization.';
+      const assumptions=[item.news.basis==='hypothesis'?'No verified organization-specific evidence.':'',item.fit?.assumptions||'Proposed workflow. Confirm system access, integration work, business rules and approval controls with the organization.'].filter(Boolean).join(' ');
       label('Assumptions to validate',margin,259);
       write(clip(lines(assumptions,width,8.5),2,width,8.5),margin,264,8.5,false,MUTED,3.7);
       const sourceMap=new Map(report.sources.map(source=>[source.id,source]));
-      if(item.intro) write(clip(lines(`${item.news.date} / ${item.news.headline}`,width,8),1,width,8),margin,274,8,false,MUTED);
+      if(item.intro) write(clip(lines([content.evidenceLabel(item.news),item.news.date,item.news.headline].filter(Boolean).join(" / "),width,8),1,width,8),margin,274,8,false,MUTED);
       let linkX=margin;
       for(const id of item.news.source_ids) {
         const source=sourceMap.get(id);if(!source) continue;
@@ -112,7 +112,7 @@
       font(7.5,false,MUTED);doc.text(condensed?'Condensed brief. Full workflow in the app.':'Proposed opportunity. Validate with your organization.',margin,291);
       doc.text(`${index+1} / ${report.cases.length}`,192,291,{align:'right'});
     });
-    doc.setProperties({title:`Agent Mesh opportunities for ${plain(report.company)}`,subject:'Three sourced opportunity briefs, one case per page',creator:'SAM Cards',author:'Solace Agent Mesh'});
+    doc.setProperties({title:`Agent Mesh opportunities for ${plain(report.company)}`,subject:'Three proposed opportunity briefs, one case per page',creator:'SAM Cards',author:'Solace Agent Mesh'});
     return doc;
   }
   root.createResearchPDF=createResearchPDF;

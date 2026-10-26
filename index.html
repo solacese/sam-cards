@@ -10,14 +10,14 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="icon" href="assets/solace-logo.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=15">
+  <link rel="stylesheet" href="styles.css?v=17">
   <script src="config.js?v=9" defer></script>
   <script src="assets/vendor/jspdf.umd.min.js" defer></script>
-  <script src="report-content.js?v=16" defer></script>
+  <script src="report-content.js?v=17" defer></script>
   <script src="tailoring.js?v=15" defer></script>
-  <script src="pdf-export.js?v=16" defer></script>
-  <script src="quick-build.js?v=16" defer></script>
-  <script src="app.js?v=16" defer></script>
+  <script src="pdf-export.js?v=17" defer></script>
+  <script src="quick-build.js?v=17" defer></script>
+  <script src="app.js?v=17" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main-content">Skip to content</a>
@@ -49,13 +49,14 @@
           </fieldset>
         </details>
       </form>
-      <p class="prompt-description">Grounded in recent news.</p>
+      <p class="prompt-description">Three ideas, informed by your organization and priorities.</p>
       <div class="research-status" id="research-status" role="status" aria-live="polite" hidden><span class="spinner" aria-hidden="true"></span><span id="status-text">Researching recent news…</span><span class="timer" id="timer" aria-hidden="true"></span></div>
       <p class="error-message" id="error-message" role="alert" hidden></p>
     </section>
     <section class="results" id="results" aria-labelledby="results-title" hidden>
       <header class="results-header"><div><h2 id="results-title" tabindex="-1"></h2><p class="results-date" id="results-date"></p></div><button class="export-button" id="export-button" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M4 17v4h16v-4"/></svg>Export PDF</button></header>
       <aside id="criteria-summary" class="criteria-summary" aria-label="Selected tailoring criteria" hidden></aside>
+      <p id="research-context" class="research-context" hidden></p>
       <div class="case-grid" id="case-grid"></div>
       <p class="results-note">Proposed workflows. Confirm systems, approvals and value with your organization.</p>
       <details class="sources-section"><summary>Sources</summary><ol id="sources-list"></ol><p class="capability-note">Agent Mesh: <a href="https://docs.solace.com/Agent-Mesh/Framework/building/entrypoints/event-mesh/index.htm" target="_blank" rel="noopener noreferrer">event entrypoints</a> · <a href="https://docs.solace.com/Agent-Mesh/Framework/concepts/event-driven-mesh.htm" target="_blank" rel="noopener noreferrer">event fabric</a></p></details>
