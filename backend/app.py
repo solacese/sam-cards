@@ -16,8 +16,8 @@ from urllib.request import Request, urlopen
 
 import boto3
 from botocore.exceptions import ClientError
-from prompt import CAPABILITY_SOURCES, messages
-from schema import TAILORED_RESPONSE_FORMAT, COMPANY_RESPONSE_FORMAT
+from prompt import CAPABILITY_SOURCES, messages, evidence_messages
+from schema import TAILORED_RESPONSE_FORMAT, COMPANY_RESPONSE_FORMAT, EVIDENCE_RESPONSE_FORMAT
 from expert import EXPERT_VERSION, expert_body, bind_evidence
 
 VERSION = 'organization-research-v7-intros'
@@ -109,6 +109,64 @@ def text_field(value, maximum=800):
     return value.strip()
 
 
+def public_sources(raw):
+    citations = raw.get('citations', [])
+    search = {item.get('url'):item for item in raw.get('search_results',[]) if isinstance(item,dict)}
+    sources = []
+    for index, url in enumerate(citations, 1):
+        url = safe_url(url)
+        if url:
+            item = search.get(url, {})
+            sources.append({'id':index,'url':url,'title':str(item.get('title') or urlsplit(url).hostname)[:300], 'date':str(item.get('date') or '')[:10]})
+    return sources
+
+
+def clean_news(news, sources, citation_count):
+    ids={source['id'] for source in sources}
+    today=datetime.now(timezone.utc).date()
+    published = date.fromisoformat(news['date'])
+    if not today - timedelta(days=180) <= published <= today:
+        raise ValueError('stale or future news')
+    refs = news['source_ids']
+    if not isinstance(refs,list) or not refs or any(type(i) is not int or not 1 <= i <= citation_count for i in refs):
+        raise ValueError('invalid citation')
+    # Providers may also cite unsafe HTTP mirrors. Keep only the original, safe HTTPS
+    # references, and require dated evidence for the stated news date when available.
+    refs = [i for i in refs if i in ids]
+    if not refs:
+        raise ValueError('no safe citation')
+    dated_refs = [source['date'] for source in sources if source['id'] in refs and re.fullmatch(r'\d{4}-\d{2}-\d{2}',source['date'])]
+    if dated_refs and published.isoformat() not in dated_refs:
+        raise ValueError('news date differs from source metadata')
+    if dated_refs:
+        supported_ids = {source['id'] for source in sources if not re.fullmatch(r'\d{4}-\d{2}-\d{2}',source['date']) or source['date']==published.isoformat()}
+        refs = [i for i in refs if i in supported_ids]
+    return {'headline':text_field(news['headline'],400), 'date':published.isoformat(), 'source_ids':list(dict.fromkeys(refs))}
+
+
+def evidence_report(raw, company, tailoring=None):
+    try:
+        content=raw['choices'][0]['message']['content'].strip()
+        content=re.sub(r'^```(?:json)?\s*|\s*```$', '', content)
+        data=json.loads(content)
+        if data.get('error'):
+            raise ResearchError(422,'Not enough recent, reliable news was found. Try the full organization name.')
+        items=data.get('evidence')
+        if not isinstance(items,list) or not 1<=len(items)<=5:
+            raise ValueError('evidence count')
+        sources=public_sources(raw)
+        facts=[clean_news(item,sources,len(raw.get('citations',[]))) for item in items]
+        used={source_id for news in facts for source_id in news['source_ids']}
+        if len(used)<(1 if tailoring else 3):
+            raise ValueError('insufficient sources')
+        return {'company':company,'cases':[{'news':news} for news in facts],'sources':[source for source in sources if source['id'] in used]}
+    except ResearchError:
+        raise
+    except (ValueError,TypeError,KeyError,IndexError,AttributeError):
+        print(json.dumps({'event':'invalid_evidence'}))
+        raise ResearchError(502,'The research did not return enough reliable dated sources. Please try again.') from None
+
+
 def validate_report(raw, requested_company, tailoring=None):
     """Only expose a complete, recent, citation-backed three-case response."""
     try:
@@ -117,19 +175,10 @@ def validate_report(raw, requested_company, tailoring=None):
         report = json.loads(content)
         if not isinstance(report, dict) or report.get('error'):
             raise ResearchError(422, 'Not enough recent, reliable news was found. Try the full company name.')
-        citations = raw.get('citations', [])
-        search = {item.get('url'):item for item in raw.get('search_results',[]) if isinstance(item,dict)}
-        sources = []
-        for index, url in enumerate(citations, 1):
-            url = safe_url(url)
-            if url:
-                item = search.get(url, {})
-                sources.append({'id':index,'url':url,'title':str(item.get('title') or urlsplit(url).hostname)[:300], 'date':str(item.get('date') or '')[:10]})
-        ids = {item['id'] for item in sources}
+        sources = public_sources(raw)
         cases = report.get('cases')
         if not isinstance(cases, list) or len(cases) != 3:
             raise ValueError('case count')
-        today = datetime.now(timezone.utc).date()
         cleaned = []
         used = set()
         for item in cases:
@@ -155,26 +204,8 @@ def validate_report(raw, requested_company, tailoring=None):
             result['agents'] = [{'name':text_field(agent.get('name'),100), 'role':text_field(agent.get('role'),200)} for agent in agents]
             if len({agent['name'].casefold() for agent in result['agents']}) != len(agents):
                 raise ValueError('duplicate agents')
-            news = item['news']
-            published = date.fromisoformat(news['date'])
-            if not today - timedelta(days=180) <= published <= today:
-                raise ValueError('stale or future news')
-            refs = news['source_ids']
-            if not isinstance(refs,list) or not refs or any(type(i) is not int or not 1 <= i <= len(citations) for i in refs):
-                raise ValueError('invalid citation')
-            # Providers may also cite unsafe HTTP mirrors. Keep only the original, safe HTTPS
-            # references, and require dated evidence for the stated news date when available.
-            refs = [i for i in refs if i in ids]
-            if not refs:
-                raise ValueError('no safe citation')
-            dated_refs = [source['date'] for source in sources if source['id'] in refs and re.fullmatch(r'\d{4}-\d{2}-\d{2}',source['date'])]
-            if dated_refs and published.isoformat() not in dated_refs:
-                raise ValueError('news date differs from source metadata')
-            if dated_refs:
-                supported_ids = {source['id'] for source in sources if not re.fullmatch(r'\d{4}-\d{2}-\d{2}',source['date']) or source['date']==published.isoformat()}
-                refs = [i for i in refs if i in supported_ids]
-            used.update(refs)
-            result['news']={'headline':text_field(news['headline'],400), 'date':published.isoformat(), 'source_ids':list(dict.fromkeys(refs))}
+            result['news']=clean_news(item['news'],sources,len(raw.get('citations',[])))
+            used.update(result['news']['source_ids'])
             cleaned.append(result)
         if len({item['title'].casefold() for item in cleaned}) != 3 or len({item['intro'].casefold() for item in cleaned}) != 3 or len(used)<(1 if tailoring else 3):
             raise ValueError('duplicate cases or insufficient sources')
@@ -233,13 +264,13 @@ def research(company, deadline, tailoring=None, include_evidence=False):
     if not TOKEN or TOKEN['until']<=time.time()+30:
         auth=request_json(credentials['SAP_AUTH_URL'],deadline,body={'grant_type':'client_credentials','client_id':credentials['SAP_CLIENT_ID'],'client_secret':credentials['SAP_CLIENT_SECRET']},headers={'Content-Type':'application/x-www-form-urlencoded'},form=True)
         TOKEN={'value':auth['access_token'],'until':time.time()+int(auth.get('expires_in',300))}
-    tokens=(4000 if tailoring else 3000) if include_evidence else (3300 if tailoring else 2500)
-    body={'model':credentials['MODEL'],'messages':messages(company,tailoring,compact=not include_evidence),'temperature':.2,'max_tokens':tokens,'search_recency_filter':'month'}
-    body['response_format']=TAILORED_RESPONSE_FORMAT if tailoring else COMPANY_RESPONSE_FORMAT
+    tokens=1200 if include_evidence else (3300 if tailoring else 2500)
+    body={'model':credentials['MODEL'],'messages':evidence_messages(company,tailoring) if include_evidence else messages(company,tailoring,compact=True),'temperature':.2,'max_tokens':tokens,'search_recency_filter':'month'}
+    body['response_format']=EVIDENCE_RESPONSE_FORMAT if include_evidence else TAILORED_RESPONSE_FORMAT if tailoring else COMPANY_RESPONSE_FORMAT
     response=request_json(credentials['DEPLOYMENT_URL'].rstrip('/')+'/chat/completions',deadline,
         body=body,
         headers={'Authorization':'Bearer '+TOKEN['value'],'AI-Resource-Group':credentials['SAP_RESOURCE_GROUP'],'Content-Type':'application/json'})
-    report = validate_report(response,company,tailoring)
+    report = evidence_report(response,company,tailoring) if include_evidence else validate_report(response,company,tailoring)
     if include_evidence:
         snippets = {item.get('url'):str(item.get('snippet') or '')[:2500]
                     for item in response.get('search_results',[]) if isinstance(item,dict)}

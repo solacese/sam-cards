@@ -27,3 +27,7 @@ COMPANY_RESPONSE_FORMAT={'type':'json_schema','json_schema':{'schema':object_sch
     'cases':list_schema(object_schema({key:value for key,value in CASE['properties'].items() if key!='fit'})),
     'error':{'type':'string','enum':['','insufficient_recent_news']}
 })}}
+EVIDENCE_RESPONSE_FORMAT={'type':'json_schema','json_schema':{'schema':object_schema({
+    'evidence':list_schema(CASE['properties']['news']),
+    'error':{'type':'string','enum':['','insufficient_recent_news']}
+})}}

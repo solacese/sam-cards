@@ -6,7 +6,7 @@ import time
 import unittest
 from unittest.mock import patch
 from test_backend import fixture
-from app import clean_tailoring, report_cache_key, validate_report, research, handler, ResearchError
+from app import clean_tailoring, report_cache_key, validate_report, evidence_report, research, handler, ResearchError
 from prompt import messages
 
 BRIEF = {'departments':['Finance','Procurement'],'topic':'Supplier onboarding','outcomes':['Reduce risk'],'systems':['Salesforce','SharePoint']}
@@ -24,6 +24,28 @@ def tailored_raw(criteria):
     return raw
 
 class TailoringTests(unittest.TestCase):
+    def evidence_raw(self):
+        raw=fixture();report=json.loads(raw['choices'][0]['message']['content'])
+        raw['choices'][0]['message']['content']=json.dumps({'evidence':[case['news'] for case in report['cases']],'error':''})
+        return raw
+
+    def test_best_research_gathers_evidence_without_generating_draft_cases(self):
+        credentials={'MODEL':'sonar-pro','DEPLOYMENT_URL':'https://provider.example','SAP_RESOURCE_GROUP':'test'}
+        with patch('app.get_secret',return_value=credentials),patch('app.TOKEN',{'value':'test-token','until':time.time()+600}),patch('app.request_json',return_value=self.evidence_raw()) as provider:
+            result=research('Example',time.monotonic()+35,BRIEF,include_evidence=True)
+            sent=provider.call_args.kwargs['body']
+            self.assertIn('evidence',sent['response_format']['json_schema']['schema']['properties'])
+            self.assertNotIn('cases',sent['response_format']['json_schema']['schema']['properties'])
+            self.assertIn('Supplier onboarding',sent['messages'][1]['content'])
+            self.assertEqual(set(result['cases'][0]),{'news'})
+            self.assertEqual(len(result['sources']),3)
+
+    def test_evidence_pass_keeps_the_same_citation_and_recency_guards(self):
+        raw=self.evidence_raw()
+        raw['search_results']=[{'url':raw['citations'][0],'date':'2000-01-01'}]
+        with self.assertRaises(ResearchError):evidence_report(raw,'Example',BRIEF)
+        raw=self.evidence_raw();raw['citations'][0]='javascript:alert(1)'
+        with self.assertRaises(ResearchError):evidence_report(raw,'Example',BRIEF)
     def event(self,tailoring=None):
         body={'company':'Novo Nordisk'}
         if tailoring is not None:body['tailoring']=tailoring
