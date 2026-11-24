@@ -81,6 +81,18 @@ Resources:
             ApiId: !Ref Api
             Path: /research/{job_id}
             Method: GET
+        PublishReport:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref Api
+            Path: /reports
+            Method: POST
+        SharedReport:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref Api
+            Path: /reports/{report_id}
+            Method: GET
   ExpertWorker:
     Type: AWS::Serverless::Function
     Properties:

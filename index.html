@@ -4,25 +4,28 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#ffffff">
+  <meta name="referrer" content="no-referrer">
   <meta name="description" content="Find three event-triggered Solace Agent Mesh opportunities for your organization, grounded in recent news.">
   <title>What can Agent Mesh do for your organization?</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="icon" href="assets/solace-logo.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=17">
+  <link rel="stylesheet" href="styles.css?v=18">
   <script src="config.js?v=9" defer></script>
   <script src="assets/vendor/jspdf.umd.min.js" defer></script>
   <script src="report-content.js?v=17" defer></script>
   <script src="tailoring.js?v=15" defer></script>
   <script src="pdf-export.js?v=17" defer></script>
   <script src="quick-build.js?v=17" defer></script>
-  <script src="app.js?v=17" defer></script>
+  <script src="share-page.js?v=18" defer></script>
+  <script src="app.js?v=18" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main-content">Skip to content</a>
-  <header class="site-header"><a class="brand" href="./" aria-label="Agent Mesh organization research"><img src="assets/solace-logo.svg" alt="Solace" width="86" height="22"><span>Agent Mesh</span></a></header>
+  <header class="site-header"><a class="brand" href="./" aria-label="Agent Mesh organization research"><img src="assets/solace-logo.svg" alt="Solace" width="86" height="22"><span>Agent Mesh</span></a><a id="shared-home" class="shared-home" href="./" hidden>Create opportunities</a></header>
   <main id="main-content" tabindex="-1">
+    <p id="shared-message" class="shared-message" role="status" aria-live="polite" hidden></p>
     <section class="prompt-screen" aria-labelledby="prompt-title">
       <p class="eyebrow">AGENT MESH OPPORTUNITIES</p>
       <h1 id="prompt-title">What can Agent Mesh do<br><em>for your organization?</em></h1>
@@ -54,7 +57,8 @@
       <p class="error-message" id="error-message" role="alert" hidden></p>
     </section>
     <section class="results" id="results" aria-labelledby="results-title" hidden>
-      <header class="results-header"><div><h2 id="results-title" tabindex="-1"></h2><p class="results-date" id="results-date"></p></div><button class="export-button" id="export-button" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M4 17v4h16v-4"/></svg>Export PDF</button></header>
+      <header class="results-header"><div><h2 id="results-title" tabindex="-1"></h2><p class="results-date" id="results-date"></p></div><div class="results-actions"><button class="export-button" id="share-button" type="button" disabled title="Anyone with this link can view these results" aria-describedby="share-note">Copy page link</button><button class="export-button" id="export-button" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M4 17v4h16v-4"/></svg>Export PDF</button></div></header>
+      <span id="share-note" class="sr-only">Creates an unlisted page. Anyone with the link can view these results.</span><p id="share-feedback" class="sr-only" role="status" aria-live="polite"></p>
       <aside id="criteria-summary" class="criteria-summary" aria-label="Selected tailoring criteria" hidden></aside>
       <p id="research-context" class="research-context" hidden></p>
       <div class="case-grid" id="case-grid"></div>

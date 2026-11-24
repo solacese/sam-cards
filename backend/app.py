@@ -422,6 +422,43 @@ def reply(status,data,origin):
     return {'statusCode':status,'headers':{'Content-Type':'application/json','Cache-Control':'no-store','Access-Control-Allow-Origin':origin,'Vary':'Origin','X-Content-Type-Options':'nosniff'},'body':json.dumps(data,ensure_ascii=False)}
 
 
+def shared_report(event, origin):
+    report_id=(event.get('pathParameters') or {}).get('report_id','')
+    if not re.fullmatch(r'[a-f0-9]{48}',report_id):
+        return reply(404,{'error':'This opportunity page could not be found.'},origin)
+    saved=table().get_item(Key={'pk':'shared:'+report_id},ConsistentRead=True).get('Item')
+    if not saved:
+        return reply(404,{'error':'This opportunity page could not be found.'},origin)
+    return reply(200,{'report_id':report_id,'report':json.loads(saved['report'])},origin)
+
+
+def publish_report(event, data, company, tailoring, quality, origin):
+    """Snapshot only a server-generated report; never publish caller-supplied cases."""
+    generated=data.get('generated_at')
+    if not isinstance(generated,str) or not 1<=len(generated)<=60:
+        raise ResearchError(400,'Choose generated results to create an opportunity page.')
+    now=int(time.time())
+    cached=table().get_item(Key={'pk':report_cache_key(company,tailoring,quality)},ConsistentRead=True).get('Item')
+    if not cached or int(cached['expires_at'])<=now:
+        raise ResearchError(409,'These results have expired. Generate them again to create a page link.')
+    report=json.loads(cached['report'])
+    if report.get('generated_at')!=generated:
+        raise ResearchError(409,'These results have changed. Generate them again to create a page link.')
+    source_ip=event.get('requestContext',{}).get('http',{}).get('sourceIp','unknown')
+    digest=hashlib.sha256(source_ip.encode()).hexdigest()[:24]
+    consume(f'share-ip:{digest}:{now//3600}',20,now+7200)
+    consume(f'share-budget:{datetime.now(timezone.utc).date()}',500,now+172800)
+    public_keys=('company','overview','cases','sources','capability_sources','generated_at',
+                 'tailoring','context_note','quality','model','research_model','version','expert_version')
+    snapshot={key:report[key] for key in public_keys if key in report}
+    snapshot['shared_at']=datetime.now(timezone.utc).isoformat()
+    report_id=secrets.token_hex(24)
+    # Shared pages are deliberate, persistent snapshots, independent of cache/job TTLs.
+    table().put_item(Item={'pk':'shared:'+report_id,'report':json.dumps(snapshot,ensure_ascii=False)},
+                     ConditionExpression='attribute_not_exists(pk)')
+    return reply(201,{'report_id':report_id},origin)
+
+
 def handler(event, context):
     start=time.monotonic()
     origin=(event.get('headers') or {}).get('origin','')
@@ -430,14 +467,18 @@ def handler(event, context):
         return reply(403,{'error':'Open the company research tool from its GitHub Pages site.'},allowed)
     method = event.get('requestContext',{}).get('http',{}).get('method')
     if method=='GET':
+        shared='report_id' in (event.get('pathParameters') or {})
         try:
+            if shared:
+                return shared_report(event,allowed)
             return job_status(event, allowed)
         except Exception as error:
-            print(json.dumps({'event':'job_status_error','type':type(error).__name__}))
-            return reply(500,{'error':'Could not read the research session. Please try again.'},allowed)
+            print(json.dumps({'event':'shared_page_error' if shared else 'job_status_error','type':type(error).__name__}))
+            return reply(500,{'error':'Could not open the opportunity page. Please try again.' if shared else 'Could not read the research session. Please try again.'},allowed)
     if method!='POST':
         return reply(405,{'error':'Use POST to research a company.'},allowed)
     try:
+        sharing=event.get('routeKey')=='POST /reports' or event.get('rawPath','').rstrip('/')=='/reports'
         body=event.get('body') or ''
         if event.get('isBase64Encoded'):
             body=base64.b64decode(body).decode()
@@ -445,7 +486,8 @@ def handler(event, context):
             raise ResearchError(400,'The company brief is too long.')
         try:
             data=json.loads(body)
-            if not isinstance(data,dict) or 'company' not in data or set(data)-{'company','tailoring','quality'}:
+            permitted={'company','tailoring','quality'} | ({'generated_at'} if sharing else set())
+            if not isinstance(data,dict) or 'company' not in data or set(data)-permitted:
                 raise ValueError()
         except (ValueError,TypeError):
             raise ResearchError(400,'Enter a company name and optional tailoring fields.') from None
@@ -454,6 +496,8 @@ def handler(event, context):
         quality=data.get('quality','quick')
         if quality not in ('quick','best'):
             raise ResearchError(400, 'Choose Quick or Best quality.')
+        if sharing:
+            return publish_report(event,data,company,tailoring,quality,allowed)
         source_ip=event.get('requestContext',{}).get('http',{}).get('sourceIp','unknown')
         now=int(time.time())
         digest=hashlib.sha256(source_ip.encode()).hexdigest()[:24]

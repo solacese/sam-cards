@@ -49,6 +49,7 @@ function businessValues(item) {
 }
 
 function renderReport(report) {
+  pageSharing.setReport(report);
   const sourceMap = new Map(report.sources.map(item => [item.id,item]));
   document.querySelector('#results-title').textContent = `3 opportunities for ${report.company}`;
   document.querySelector('#results-date').textContent = `${displayDate(report.generated_at)} · Perplexity${report.quality === 'best' ? ' · Expert analysis' : ''}${report.cached ? ' · Saved' : ''}`;
@@ -103,6 +104,7 @@ form.addEventListener('submit',async event=> {
   if (!endpoint) { errorMessage.textContent = 'Research is being configured. Please try again shortly.'; errorMessage.hidden=false; return; }
   busy = true;
   currentReport = null;
+  pageSharing.setReport(null);
   results.hidden = true;
   document.body.classList.remove('has-results');
   errorMessage.hidden = true;
@@ -169,20 +171,9 @@ document.querySelector('#case-grid').addEventListener('click',async event=> {
   const feedback=container.querySelector('.copy-feedback');
   button.disabled=true;
   try {
-    if(!navigator.clipboard?.writeText) throw new Error('Clipboard unavailable');
-    await navigator.clipboard.writeText(text);
-    button.textContent='Copied';
-    feedback.textContent='Prompt copied.';
-  } catch {
-    const textarea=document.querySelector('#manual-prompt');
-    const dialog=document.querySelector('#copy-prompt-dialog');
-    textarea.value=text;
-    dialog.showModal();textarea.focus();textarea.select();
-    let copied=false;
-    try {copied=document.execCommand('copy');} catch { /* Manual copy remains available. */ }
+    const copied=await window.ReportSharing.copyText(text);
     button.textContent=copied?'Copied':'Copy quick builder prompt';
     feedback.textContent=copied?'Prompt copied.':'Copy was blocked. The full prompt is selected in the copy dialog.';
-    if(copied) dialog.close();
   } finally {button.disabled=false;}
 });
 
@@ -193,3 +184,8 @@ exportButton.addEventListener('click',()=> {
 });
 
 document.querySelector('.skip-link').addEventListener('click',event=> {event.preventDefault();document.querySelector('#main-content').focus();});
+
+const pageSharing=window.ReportSharing.setup({onLoad:report=> {
+  currentReport=window.ReportContent.presentReport(report);
+  renderReport(currentReport);exportButton.disabled=false;
+}});
